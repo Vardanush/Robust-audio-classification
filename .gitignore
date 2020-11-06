@@ -20,6 +20,8 @@ wheels/
 
 # editor settings
 .idea
+*.egg-info/
+*.egg
 
 # project dirs
 /datasets/*
