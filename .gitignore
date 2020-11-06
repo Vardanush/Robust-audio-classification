@@ -1,1 +1,27 @@
-./idea
+# output dir
+output
+
+# data file
+*.wav
+
+# compilation and distribution
+__pycache__
+build/
+dist/
+wheels/
+
+# pytorch/python/numpy formats
+*.pth
+*.pkl
+*.pt
+
+# ipython/jupyter notebooks
+**/.ipynb_checkpoints/
+
+# editor settings
+.idea
+
+# project dirs
+/datasets/*
+!/datasets/*.*
+/weights
