@@ -1,3 +1,3 @@
-from .crnn import CRNN
+from .crnn import CRNN, LitCRNN
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
