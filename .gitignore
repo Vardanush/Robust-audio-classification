@@ -27,3 +27,4 @@ wheels/
 /datasets/*
 !/datasets/*.*
 /weights
+/logs
