@@ -2,7 +2,7 @@
 Classification training routine
 """
 
-from data.urbansound8k import UrbanSoundDataset
+from project.data.urbansound8k import UrbanSoundDataset
 import torch
 import torch.nn as nn
 import torchaudio
@@ -11,8 +11,10 @@ from project.model.deepcnn import m18, m11
 from tqdm import tqdm
 import datetime
 
+__all__ = ["run"]
+
 csv_path = '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
-file_path = '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/UrbanSound8K/audio/'
+file_path = '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
