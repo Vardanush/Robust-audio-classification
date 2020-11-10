@@ -1,7 +1,7 @@
 import torchaudio.transforms as T
 import torch.nn as nn
 
-__all__=["log_amp_mel_spectrogram"]
+__all__ = ["log_amp_mel_spectrogram"]
 
 
 def log_amp_mel_spectrogram():

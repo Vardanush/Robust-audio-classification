@@ -1,3 +1,5 @@
+from abc import ABC
+
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -8,7 +10,7 @@ from pytorch_lightning.metrics.functional import accuracy
 __all__ = ['Classifier']
 
 
-class Classifier(pl.LightningModule):
+class Classifier(pl.LightningModule, ABC):
     """
     Abstract base class for classifier models.
     """

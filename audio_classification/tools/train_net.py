@@ -50,7 +50,7 @@ def get_transform(cfg):
 
 def get_model(cfg):
     if cfg.MODEL.NAME == "LitCRNN":
-        model = LitCRNN()
+        model = LitCRNN(cfg)
     # TODO: create model for other classifiers
     else:
         raise ValueError("Unknown model: {}".format(cfg.MODEL.NAME))
@@ -89,5 +89,5 @@ if __name__ == "__main__":
     parser.add_argument('--config', type=int, default="crnn.yaml")
     args = parser.parse_args()
     with open(args.config, "r") as config_file:
-        cfg = yaml.load(config_file)
-    do_train(cfg)
+        configs = yaml.load(config_file)
+    do_train(configs)
