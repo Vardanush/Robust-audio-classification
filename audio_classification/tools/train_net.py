@@ -31,10 +31,10 @@ def get_dataloader(cfg, transform=None):
     logger.info("Train set size: {}".format(str(len(train_set))))
 
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                              shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKDERS"],
+                              shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                               pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                            num_workers=cfg["DATALOADER"]["NUM_WORKDERS"],
+                            num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                             pin_memory=True)
 
     return train_loader, val_loader
