@@ -12,7 +12,7 @@ class UrbanSoundDataset(Dataset):
     """
 
     def __init__(self, cfg, folder_list, transform=None):
-        csv_data = pd.read_csv(cfg.DATASET.ANNOTATION_PATH)
+        csv_data = pd.read_csv(cfg["DATASET"]["ANNOTATION_PATH"])
         # initialize lists to hold file names, labels, and folder numbers
         self.file_names = []
         self.labels = []
@@ -24,8 +24,8 @@ class UrbanSoundDataset(Dataset):
                 self.labels.append(csv_data.iloc[i, 6])
                 self.folders.append(csv_data.iloc[i, 5])
 
-        self.file_path = cfg.DATASET.FILE_PATH
-        self.length = cfg.DATASET.CLIP_LENGTH
+        self.file_path = cfg["DATASET"]["FILE_PATH"]
+        self.length = cfg["DATASET"]["CLIP_LENGTH"]
         self.folder_list = folder_list
         self.transform = transform
 
