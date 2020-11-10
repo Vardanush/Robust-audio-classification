@@ -85,11 +85,9 @@ def do_train(cfg):
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
-
     parser = ArgumentParser()
-    parser.add_argument('--layer_1_dim', type=int, default=128)
+    parser.add_argument('--config', type=int, default="crnn.yaml")
     args = parser.parse_args()
-    # TODO: take config file name as args
-    with open("config.yml", "r") as yml_file:
-        cfg = yaml.load(yml_file)
+    with open(args.config, "r") as config_file:
+        cfg = yaml.load(config_file)
     do_train(cfg)
