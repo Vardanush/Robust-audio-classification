@@ -1,0 +1,25 @@
+MODEL:
+  NAME: "CRNN"
+  VERSION: "LIGHTNING"
+  NUM_CLASSES: 10
+  CRNN:
+    INCLUDE_TOP: True
+    PAD_INPUT: 15
+DATASETS:
+  CLIP_LENGTH: 176400
+  ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
+  FILE_PATH: '../datasets/UrbanSound8K/audio/'
+DATALOADER:
+  BATCH_SIZE: 12
+  NUM_WORKERS: 20
+  SHUFFLE_TRAIN: True
+  SHUFFLE_TEST: False
+SOLVER:
+  LOGGER_PATH: '../logs/'
+  CHECKPOINT_PATH: '../weights'
+  NUM_GPUS: 1
+  MAX_EPOCH: 20
+  MIN_EPOCH: 10
+  LEARNING_RATE: 0.01
+  WEIGHT_DECAY: 0.001
+
