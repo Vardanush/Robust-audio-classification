@@ -8,6 +8,7 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.model import LitCRNN
+from argparse import ArgumentParser
 
 
 def get_dataloader(cfg, transform=None):
@@ -79,6 +80,10 @@ def do_train(cfg):
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
+
+    parser = ArgumentParser()
+    parser.add_argument('--layer_1_dim', type=int, default=128)
+    args = parser.parse_args()
     # TODO: take config file name as args
     with open("config.yml", "r") as yml_file:
         cfg = yaml.load(yml_file)

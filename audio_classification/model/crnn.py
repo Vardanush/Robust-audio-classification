@@ -12,18 +12,15 @@ class LitCRNN(Classifier):
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
-    def __init__(self, include_top=True, num_classes=10, pad_input=15,
-                 learning_rate=0.001, weight_decay=0.001,
-                 lr_scheduler_factor=0.5, lr_scheduler_patience=5,
-                 lr_scheduler_threshold=0.001, lr_scheduler_monitor='val_acc'):
+    def __init__(self, cfg):
         super().__init__()
-        self.save_hyperparameters('learning_rate', 'weight_decay',
-                                  'lr_scheduler_factor', 'lr_scheduler_patience',
-                                  'lr_scheduler_threshold', 'lr_scheduler_monitor')
-
-        self.include_top = include_top
-        self.num_classes = num_classes
-        self.pad_input = pad_input
+        self.learning_rate = cfg.SOLVER.LEARNING_RATE
+        self.weight_decay = cfg.SOLVER.WEIGHT_DECAY
+        self.step_size = cfg.SOLVER.STEP_SIZE
+        self.gamma = cfg.SOLVER.GAMMA
+        self.include_top = cfg.CRNN.INCLUDE_TOP
+        self.num_classes = cfg.CRNN.NUM_CLASSES
+        self.pad_input = cfg.CRNN.PAD_INPUT
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
