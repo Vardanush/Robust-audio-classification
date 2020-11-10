@@ -34,7 +34,6 @@ class UrbanSoundDataset(Dataset):
         path = self.file_path + "fold" + str(self.folders[index]) + "/" + self.file_names[index]
         # load returns a tensor with the sound data and the sampling frequency (44.1kHz for UrbanSound8K)
         sound = torchaudio.load(path, out=None, normalization=True)
-        # TODO: move single channel and trim/pad as transform
         # UrbanSound8K uses two channels, this will convert them to one
         sound_data = torch.mean(sound[0], dim=0, keepdim=True)
         # pad or trim data to be the same length

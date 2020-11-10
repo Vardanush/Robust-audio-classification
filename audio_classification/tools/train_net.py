@@ -8,6 +8,7 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.model import LitCRNN
+from audio_classification.utils import audio_transform
 from argparse import ArgumentParser
 
 
@@ -40,7 +41,11 @@ def get_dataloader(cfg, transform=None):
 
 
 def get_transform(cfg):
-    return None
+    if cfg.MODEL.NAME == "LitCRNN":
+        transform = audio_transform.log_amp_mel_spectrogram()
+    else:
+        raise ValueError("No matching transform for model: {}".format(cfg.MODEL.NAME))
+    return transform
 
 
 def get_model(cfg):
