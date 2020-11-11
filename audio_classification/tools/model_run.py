@@ -2,12 +2,12 @@
 Classification training routine
 """
 
-from project.data.urbansound8k import UrbanSoundDataset
+from audio_classification.data.urbansound8k import UrbanSoundDataset
 import torch
 import torch.nn as nn
 import torchaudio
 import torch.optim as optim
-from project.model.deepcnn import m18, m11
+from audio_classification.model.deepcnn import m18, m11
 from tqdm import tqdm
 import datetime
 

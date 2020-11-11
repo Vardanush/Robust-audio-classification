@@ -9,15 +9,10 @@ __all__ = ["UrbanSoundDataset"]
 class UrbanSoundDataset(Dataset):
     """
     Wrapper for the UrbanSound8K dataset.
-
-    Parameters:
-        csv_path (str): path to the UrbanSound8K csv file
-        file_path (str): path to the UrbanSound8k audio files
-        folder_list (list): list of folders to use in the dataset
     """
 
-    def __init__(self, csv_path, file_path, folder_list, length=176400, transform=None):
-        csv_data = pd.read_csv(csv_path)
+    def __init__(self, cfg, folder_list, transform=None):
+        csv_data = pd.read_csv(cfg["DATASET"]["ANNOTATION_PATH"])
         # initialize lists to hold file names, labels, and folder numbers
         self.file_names = []
         self.labels = []
@@ -29,9 +24,9 @@ class UrbanSoundDataset(Dataset):
                 self.labels.append(csv_data.iloc[i, 6])
                 self.folders.append(csv_data.iloc[i, 5])
 
-        self.file_path = file_path
+        self.file_path = cfg["DATASET"]["FILE_PATH"]
+        self.length = cfg["DATASET"]["CLIP_LENGTH"]
         self.folder_list = folder_list
-        self.length = length
         self.transform = transform
 
     def __getitem__(self, index):
