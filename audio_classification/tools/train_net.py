@@ -28,7 +28,7 @@ def get_dataloader(cfg, transform=None):
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
     logger.info("Train set size: {}".format(str(len(train_set))))
-    logger.info("Train set size: {}".format(str(len(train_set))))
+    logger.info("Val set size: {}".format(str(len(val_set))))
 
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                               shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
