@@ -6,7 +6,6 @@ MODEL:
     PAD_INPUT: 15
 DATASET:
   NAME: "UrbanSounds8K"
-  CLIP_LENGTH: 176400
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10

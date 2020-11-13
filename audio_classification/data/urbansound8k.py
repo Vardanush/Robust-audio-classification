@@ -25,7 +25,6 @@ class UrbanSoundDataset(Dataset):
                 self.folders.append(csv_data.iloc[i, 5])
 
         self.file_path = cfg["DATASET"]["FILE_PATH"]
-        self.length = cfg["DATASET"]["CLIP_LENGTH"]
         self.folder_list = folder_list
         self.transform = transform
 
