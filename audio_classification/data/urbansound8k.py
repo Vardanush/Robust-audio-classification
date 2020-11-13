@@ -36,13 +36,6 @@ class UrbanSoundDataset(Dataset):
         sound = torchaudio.load(path, out=None, normalization=True)
         # UrbanSound8K uses two channels, this will convert them to one
         sound_data = torch.mean(sound[0], dim=0, keepdim=True)
-        # pad or trim data to be the same length
-        temp_data = torch.zeros([1, self.length])
-        if sound_data.numel() < self.length:
-            temp_data[:, :sound_data.numel()] = sound_data
-        else:
-            temp_data = sound_data[:, :self.length]
-        sound_data = temp_data
 
         if self.transform:
             sound_formatted = self.transform(sound_data)
