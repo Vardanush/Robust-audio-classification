@@ -73,6 +73,11 @@ def get_dataloader(cfg, transform=None):
     else:
         collate_fn = None
         
+        
+    if cfg["MODEL"]["SANITY_CHECK"] == 1: # TODO: sanity check is defined in m18_bmw yaml. Add it to other yaml files
+        train_loader = train_loader # TODO: change it for the data loaders to have only 1 sample and other elif statements for 2,5,10 samples
+        
+        
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                   shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
@@ -134,7 +139,7 @@ def do_train(cfg):
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
-                         progress_bar_refresh_rate=20,
+                         progress_bar_refresh_rate=10,
                          callbacks=[checkpoint_callback],
                          logger=tb_logger)
 
