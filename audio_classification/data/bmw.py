@@ -64,12 +64,13 @@ class BMWDataset(Dataset):
     
     def __getitem__(self, index):
         data_dict = None
-        audio = torchaudio.load(self.audios[index], out=None, normalization=True)
+        sound = torchaudio.load(self.audios[index], out=None, normalization=True)
         label = self.labels[index]
+        audio = sound[0]
         if self.transform:
             audio = self.transform(audio)
-        data_dict = {"audio": audio , "label": label}
+#         data_dict = {"audio": audio , "label": label}
         
-        return data_dict
+        return audio, label
     
 # Add transform classes here if required!

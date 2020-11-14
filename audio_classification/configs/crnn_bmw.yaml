@@ -1,0 +1,29 @@
+MODEL:
+  NAME: "LitCRNN"
+  NUM_CLASSES: 10
+  SANITY_CHECK: 0
+  CRNN:
+    INCLUDE_TOP: True
+    PAD_INPUT: 1
+DATASET:
+  NAME: "BMW"
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  TRANSFORM:
+    LENGTH: 368000
+DATALOADER:
+  BATCH_SIZE: 12
+  NUM_WORKERS: 20
+SOLVER:
+  LOG_PATH: '../logs/'
+  NUM_GPUS: 1
+  MAX_EPOCH: 30
+  MIN_EPOCH: 10
+  LEARNING_RATE: 0.01
+  WEIGHT_DECAY: 0.001
+  STEP_SIZE: 10
+  GAMMA: 0.1
+CHECKPOINT:
+  SAVE_NAME: "crnn-bmw"
+  SAVE_PATH: '../weights'
+  SAVE_TOP_K: 1
+

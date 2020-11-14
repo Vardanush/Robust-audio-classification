@@ -55,7 +55,7 @@ def get_dataloader(cfg, transform=None):
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
-        sets = BMWDataset(cfg, None) # train, val, test split in the ratio 8:1:1
+        sets = BMWDataset(cfg, transform=transform) # train, val, test split in the ratio 8:1:1
         train_samples = len(sets)*80 // 100
         val_samples = len(sets)*10 // 100
         test_samples = len(sets) - train_samples - val_samples
@@ -96,13 +96,13 @@ def get_dataloader(cfg, transform=None):
 
 
 def get_transform(cfg):
-    if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
-        if cfg["MODEL"]["NAME"] == "LitCRNN":
-            transform = audio_transform.log_amp_mel_spectrogram()
-        elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+    if cfg["MODEL"]["NAME"] == "LitCRNN":
+        transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
+    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
             transform = torchaudio.transforms.Resample(44100, 8000)
         else:
-            raise ValueError("No matching transform for model: {}".format(cfg["MODEL"]["NAME"]))
+            transform = None
     else:
         transform = None
     return transform
