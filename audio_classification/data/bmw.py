@@ -1,6 +1,5 @@
 from torch.utils.data import Dataset
 import torchaudio
-import pandas as pd
 import torch
 import os
 
@@ -10,16 +9,13 @@ __all__ = ["BMWDataset"]
 class BMWDataset(Dataset):
     """
     Wrapper for the BMW dataset.
-
-    Parameter:
-        folder__path (str): specifying path to trimmed/non trimmed audio files
     """
 
-    def __init__(self,folder_path, transform=None):
+    def __init__(self, cfg, transform=None):
         super().__init__()
-        self.classes, self.class_to_idx = self._find_classes(folder_path)
+        self.classes, self.class_to_idx = self._find_classes(cfg["DATASET"]["FOLDER_PATH"])
         self.audios, self.labels = self.make_dataset(
-            directory=folder_path,
+            directory=cfg["DATASET"]["FOLDER_PATH"],
             class_to_idx=self.class_to_idx
         )
         self.transform = transform

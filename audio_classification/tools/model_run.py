@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torchaudio
 import torch.optim as optim
-from audio_classification.model.deepcnn import m18, m11
+from audio_classification.model.deepcnn import lit_m18, lit_m11
 from tqdm import tqdm
 import datetime
 

@@ -1,0 +1,24 @@
+MODEL:
+  NAME: "LitM18"
+  NUM_CLASSES: 10
+DATASET:
+  NAME: "UrbanSounds8K"
+  ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
+  FILE_PATH: '../datasets/UrbanSound8K/audio/'
+  VAL_FOLD: 10
+DATALOADER:
+  BATCH_SIZE: 128
+  NUM_WORKERS: 20
+SOLVER:
+  LOG_PATH: '../logs/'
+  NUM_GPUS: 1
+  MAX_EPOCH: 100 # in paper 100-400
+  MIN_EPOCH: 1
+  LEARNING_RATE: 0.001
+  WEIGHT_DECAY: 0.0000001 #1e-4 in the paper
+  STEP_SIZE: 7
+  GAMMA: 0.1
+CHECKPOINT:
+  SAVE_NAME: "m18_urbansound8k"
+  SAVE_PATH: '../weights'
+  SAVE_TOP_K: 1
