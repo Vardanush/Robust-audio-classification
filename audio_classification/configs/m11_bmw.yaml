@@ -1,6 +1,7 @@
 MODEL:
   NAME: "LitM11"
   NUM_CLASSES: 6
+  SANITY_CHECK: 0 # to check if model is training properly or not. Number specifies the length of train dataloader
 DATASET:
   NAME: "BMW"
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
@@ -9,15 +10,15 @@ DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/m11'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
+  MAX_EPOCH: 30
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
-  WEIGHT_DECAY: 0.0000001 #1e-4 in the paper
+  WEIGHT_DECAY: 0.0001 #1e-4 in the paper
   STEP_SIZE: 7
   GAMMA: 0.1
 CHECKPOINT:
-  SAVE_NAME: "m18"
+  SAVE_NAME: "m11"
   SAVE_PATH: '../weights'
   SAVE_TOP_K: 1

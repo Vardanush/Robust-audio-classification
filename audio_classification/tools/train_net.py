@@ -3,6 +3,7 @@ import yaml
 import logging
 import torch
 from torch.utils.data import DataLoader
+import torchaudio
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -103,6 +104,9 @@ def get_transform(cfg):
             transform = torchaudio.transforms.Resample(44100, 8000)
         else:
             raise ValueError("No matching transform for model: {}".format(cfg["MODEL"]["NAME"]))
+    elif cfg["DATASET"]["NAME"] == "BMW":
+        if cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+            transform = torchaudio.transforms.Resample(4800, 8000)
     else:
         transform = None
     return transform
@@ -144,6 +148,8 @@ def do_train(cfg):
                          logger=tb_logger)
 
     trainer.fit(model, train_loader, val_loader)
+    
+    return test_loader
 
 
 if __name__ == "__main__":
