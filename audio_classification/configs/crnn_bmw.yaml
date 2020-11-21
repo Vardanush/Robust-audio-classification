@@ -5,10 +5,11 @@ MODEL:
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
+  ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   VAL_FOLD: 10
 DATALOADER:
-  BATCH_SIZE: 12
+  BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/'

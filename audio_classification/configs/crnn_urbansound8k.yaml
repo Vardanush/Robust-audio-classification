@@ -1,31 +1,27 @@
 MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 10
-  SANITY_CHECK: 0
   CRNN:
     INCLUDE_TOP: True
-    PAD_INPUT: 15
 DATASET:
   NAME: "UrbanSounds8K"
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10
-  TRANSFORM:
-    LENGTH: 176400
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
-  MIN_EPOCH: 1
+  MAX_EPOCH: 30
+  MIN_EPOCH: 10
   LEARNING_RATE: 0.01
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 7
   GAMMA: 0.1
 CHECKPOINT:
-  SAVE_NAME: "crnn"
+  SAVE_NAME: "crnn-us8k"
   SAVE_PATH: '../weights'
   SAVE_TOP_K: 1
 
