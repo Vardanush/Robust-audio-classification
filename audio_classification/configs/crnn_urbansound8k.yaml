@@ -1,6 +1,7 @@
 MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 10
+  SANITY_CHECK: 0
   CRNN:
     INCLUDE_TOP: True
     PAD_INPUT: 15
@@ -9,6 +10,8 @@ DATASET:
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10
+  TRANSFORM:
+    LENGTH: 176400
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20

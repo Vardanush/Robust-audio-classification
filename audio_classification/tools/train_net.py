@@ -3,6 +3,7 @@ import yaml
 import logging
 import torch
 from torch.utils.data import DataLoader
+import torchaudio
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -119,6 +120,8 @@ def do_train(cfg):
                          logger=tb_logger)
 
     trainer.fit(model, train_loader, val_loader)
+    
+    return test_loader
 
 
 if __name__ == "__main__":

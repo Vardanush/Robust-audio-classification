@@ -9,15 +9,15 @@ DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/m11'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
+  MAX_EPOCH: 30
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
-  WEIGHT_DECAY: 0.0000001 #1e-4 in the paper
+  WEIGHT_DECAY: 0.0001 #1e-4 in the paper
   STEP_SIZE: 7
   GAMMA: 0.1
 CHECKPOINT:
-  SAVE_NAME: "m18"
+  SAVE_NAME: "m11"
   SAVE_PATH: '../weights'
   SAVE_TOP_K: 1

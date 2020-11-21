@@ -78,11 +78,15 @@ class LitDeepCNN(Classifier):
         x = x.mean(dim=2)
         x = self.linear(x)
         return x
-    
-def lit_m11(cfg):
-    model = LitDeepCNN(cfg, [2, 2, 3, 2])
-    return model
 
-def lit_m18(cfg):
-    model = LitDeepCNN(cfg, [4, 4, 4, 4])
-    return model
+class lit_m11(LitDeepCNN):
+    
+    def __init__(self, cfg, num_layers = [2,2,3,2]):
+        LitDeepCNN.__init__(self, cfg, num_layers)
+
+
+class lit_m18(LitDeepCNN):
+    
+    def __init__(self, cfg, num_layers = [4,4,4,4]):
+        LitDeepCNN.__init__(self, cfg, num_layers)
+        
