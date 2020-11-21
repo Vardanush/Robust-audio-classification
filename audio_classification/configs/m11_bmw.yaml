@@ -1,7 +1,6 @@
 MODEL:
   NAME: "LitM11"
   NUM_CLASSES: 6
-  SANITY_CHECK: 0 # to check if model is training properly or not. Number specifies the length of train dataloader
 DATASET:
   NAME: "BMW"
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
