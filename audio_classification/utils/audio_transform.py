@@ -10,9 +10,9 @@ def log_amp_mel_spectrogram(cfg=None):
     """
     Using original sampling_rate, n_fft, hop_length, n_mels from the CRNN paper
     """
-#     length = cfg["DATASET"]["TRANSFORM"]["LENGTH"]
+    length = cfg["DATASET"]["TRANSFORM"]["LENGTH"]
     return nn.Sequential(
-#         FixedLength(length=length),
+        FixedLength(length=length),
         T.MelSpectrogram(sample_rate=12000, n_fft=512, hop_length=256, n_mels=96),
         T.AmplitudeToDB()
     )
@@ -26,7 +26,7 @@ class FixedLength(torch.nn.Module):
     """
     __constants__ = ['length']
 
-    def __init__(self, length: int = 0) -> None:
+    def __init__(self, length: int = 176400) -> None:
         super(FixedLength, self).__init__()
         self.length = length
 

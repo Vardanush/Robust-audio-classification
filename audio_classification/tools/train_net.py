@@ -14,6 +14,18 @@ from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
 from argparse import ArgumentParser
 
+
+def adjust_len(seq, length):
+    '''
+    to enable sequences of variable lengths in a batch we pad them
+    '''
+    out = torch.zeros([1, length])
+    if seq.shape[-1] < length:
+            out[:, :seq.numel()] = seq
+    else:
+            out = seq[:, :length]
+    return out
+
 def my_collate(batch):
     '''
     From https://discuss.pytorch.org/t/how-to-create-a-dataloader-with-variable-size-input/8278/3
@@ -21,30 +33,16 @@ def my_collate(batch):
     Use torch.nn.utils.rnn.pack_padded_sequence
     
     '''
-    data = [item[0] for item in batch] # not including sr in the batch
-    target = [item[1] for item in batch]
-    length = [item.shape[-1] for item in data]
-    
-    max_length = max(length)
-    data =[torch.nn.functional.pad(item, (0, max_length - item.shape[-1])) for item in data]
+    data = [item['audio'][0] for item in batch] # not including sr in the batch
+    max_length = max([item.shape[1] for item in data])
+  
+    data =[adjust_len(item, max_length) for item in data]
     data=torch.stack(data)
-    
+    target = [item['label'] for item in batch]
     target = torch.LongTensor(target)
-    length = torch.LongTensor(length)
 
-    return [data, target, length]
+    return [data, target]
 
-def get_transform(cfg):
-    if cfg["MODEL"]["NAME"] == "LitCRNN":
-        transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
-    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
-        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
-            transform = torchaudio.transforms.Resample(44100, 8000)
-        else:
-            transform = None
-    else:
-        transform = None
-    return transform
 
 def get_dataloader(cfg, transform=None):
     folds = list(range(1, 11))
@@ -71,7 +69,6 @@ def get_dataloader(cfg, transform=None):
         train_loader = train_loader # TODO: change it for the data loaders to have only 1 sample and other elif statements for 2,5,10 samples
         
         
-    collate_fn = my_collate    
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                   shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
@@ -87,6 +84,22 @@ def get_dataloader(cfg, transform=None):
 #         test_loader = None
     test_loader = None
     return train_loader, val_loader, test_loader
+
+
+def get_transform(cfg):
+    if cfg["MODEL"]["NAME"] == "LitCRNN":
+        transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
+    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
+            transform = torchaudio.transforms.Resample(44100, 8000)
+        else:
+            raise ValueError("No matching transform for model: {}".format(cfg["MODEL"]["NAME"]))
+    elif cfg["DATASET"]["NAME"] == "BMW":
+        if cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+            transform = torchaudio.transforms.Resample(4800, 8000)
+    else:
+        transform = None
+    return transform
 
 
 def get_model(cfg):
