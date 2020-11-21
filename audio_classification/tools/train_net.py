@@ -12,6 +12,7 @@ from audio_classification.data import BMWDataset
 from audio_classification.model import LitCRNN
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
+from audio_classification.utils import class_weighting
 from argparse import ArgumentParser
 
 def collate(batch):
@@ -24,11 +25,11 @@ def collate(batch):
     data = [item[0] for item in batch] # not including sr in the batch
     target = [item[1] for item in batch]
     length = [item.shape[-1] for item in data]
-    
+
     max_length = max(length)
     data =[torch.nn.functional.pad(item, (0, max_length - item.shape[-1])) for item in data]
     data=torch.stack(data)
-    
+
     target = torch.LongTensor(target)
     length = torch.LongTensor(length)
 
@@ -50,35 +51,38 @@ def get_dataloader(cfg, transform=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
     train_folds = [fold for fold in folds if fold not in val_folds]
-    
+
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
+        sets = UrbanSoundDataset(cfg, folds, transform=transform)
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
         train_set = BMWDataset(cfg, train_folds, transform=transform)
-        val_set = BMWDataset(cfg, val_folds, transform=transform)   
+        val_set = BMWDataset(cfg, val_folds, transform=transform)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
-    collate_fn = collate    
+    collate_fn = collate
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                   shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
     val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-    test_loader = None  
+
+    class_weights = class_weighting.calc_weights(sets, cfg)
+    test_loader = None
     return train_loader, val_loader, test_loader
 
 
 def get_model(cfg):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg)
+        model = LitCRNN(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg)
+        model = lit_m18(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg)
+        model = lit_m11(cfg, weights)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     return model
@@ -89,7 +93,7 @@ def do_train(cfg):
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     logger.info("Training on device {}".format(device))
 
-    train_loader, val_loader, test_loader = get_dataloader(cfg, transform=get_transform(cfg))
+    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=get_transform(cfg))
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
@@ -99,7 +103,7 @@ def do_train(cfg):
         mode='max'
     )
 
-    model = get_model(cfg)
+    model = get_model(cfg, class_weights)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],

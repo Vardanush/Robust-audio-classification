@@ -8,6 +8,7 @@ DATASET:
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10
+  WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20

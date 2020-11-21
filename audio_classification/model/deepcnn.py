@@ -16,8 +16,8 @@ class LitDeepCNN(Classifier):
     Implementation from paper https://arxiv.org/pdf/1610.00087.pdf
     """
     
-    def __init__(self, cfg, num_layers):
-        super().__init__()
+    def __init__(self, cfg, num_layers, class_weights):
+        super().__init__(class_weights)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
@@ -81,12 +81,12 @@ class LitDeepCNN(Classifier):
 
 class lit_m11(LitDeepCNN):
     
-    def __init__(self, cfg, num_layers = [2,2,3,2]):
-        LitDeepCNN.__init__(self, cfg, num_layers)
+    def __init__(self, cfg, class_weights, num_layers = [2,2,3,2]):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
 
 
 class lit_m18(LitDeepCNN):
     
-    def __init__(self, cfg, num_layers = [4,4,4,4]):
-        LitDeepCNN.__init__(self, cfg, num_layers)
+    def __init__(self, cfg, class_weights, num_layers = [4,4,4,4]):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
         

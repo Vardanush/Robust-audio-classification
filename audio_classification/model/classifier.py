@@ -9,14 +9,14 @@ from pytorch_lightning.metrics.functional import accuracy
 
 __all__ = ['Classifier']
 
-
 class Classifier(pl.LightningModule, ABC):
     """
     Abstract base class for classifier models.
     """
 
-    def __init__(self):
+    def __init__(self, class_weights):
         super().__init__()
+        self.class_weights = class_weights
 
     def forward(self, x):
         pass
@@ -24,7 +24,10 @@ class Classifier(pl.LightningModule, ABC):
     def training_step(self, batch, batch_idx):
         x, y, _ = batch
         out = self(x)
-        loss = F.cross_entropy(out, y)
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -32,7 +35,10 @@ class Classifier(pl.LightningModule, ABC):
     def validation_step(self, batch, batch_idx):
         x, y, _ = batch
         out = self(x)
-        loss = F.cross_entropy(out, y)
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
@@ -43,7 +49,24 @@ class Classifier(pl.LightningModule, ABC):
     def test_step(self, batch, batch_idx):
         x, y, _ = batch
         out = self(x)
-        loss = F.cross_entropy(out, y)
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
+        preds = torch.argmax(out, dim=1)
+        acc = accuracy(preds, y)
+
+        self.log('test_loss', loss, prog_bar=True)
+        self.log('test_acc', acc, prog_bar=True)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        x, y, _ = batch
+        out = self(x)
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 

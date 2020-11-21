@@ -4,7 +4,9 @@ MODEL:
 DATASET:
   NAME: "BMW"  
   ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise' 
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
+  WEIGHT: "NORMAL" #"SQUARED"
   VAL_FOLD: 10
 DATALOADER:
   BATCH_SIZE: 8
