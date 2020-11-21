@@ -12,8 +12,8 @@ class LitCRNN(Classifier):
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
-    def __init__(self, cfg):
-        super().__init__()
+    def __init__(self, cfg, class_weights):
+        super().__init__(class_weights)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]

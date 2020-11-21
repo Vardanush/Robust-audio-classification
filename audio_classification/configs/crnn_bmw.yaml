@@ -1,7 +1,6 @@
 MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
-  SANITY_CHECK: 0
   CRNN:
     INCLUDE_TOP: True
     PAD_INPUT: 1
@@ -10,6 +9,7 @@ DATASET:
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   TRANSFORM:
     LENGTH: 368000
+  WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20

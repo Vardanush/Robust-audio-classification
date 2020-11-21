@@ -1,15 +1,15 @@
 MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
-  SANITY_CHECK: 0
   CRNN:
     INCLUDE_TOP: True
     PAD_INPUT: 0
 DATASET:
   NAME: "BMW"
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' 
   TRANSFORM:
     LENGTH: 184200
+  WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20

@@ -5,6 +5,7 @@ DATASET:
   NAME: "BMW"  
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise' 
   FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
+  WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
   BATCH_SIZE: 8
   NUM_WORKERS: 20

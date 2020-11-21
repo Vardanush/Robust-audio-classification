@@ -12,6 +12,7 @@ from audio_classification.data import BMWDataset
 from audio_classification.model import LitCRNN
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
+from audio_classification.utils import class_weighting
 from argparse import ArgumentParser
 
 
@@ -33,12 +34,18 @@ def my_collate(batch):
     Use torch.nn.utils.rnn.pack_padded_sequence
     
     '''
-    data = [item['audio'][0] for item in batch] # not including sr in the batch
+    #data = [item['audio'][0] for item in batch] 
+    data = []
+    target = []
+    for audio, label in batch:
+        data.append(audio[0]) # not including sr in the batch
+        target.append(label)
+        
     max_length = max([item.shape[1] for item in data])
   
     data =[adjust_len(item, max_length) for item in data]
     data=torch.stack(data)
-    target = [item['label'] for item in batch]
+    #target = [item['label'] for item in batch]
     target = torch.LongTensor(target)
 
     return [data, target]
@@ -53,6 +60,7 @@ def get_dataloader(cfg, transform=None):
         train_folds = [fold for fold in folds if fold not in val_folds]
 
         # create train and test sets using chosen transform
+        sets = UrbanSoundDataset(cfg, folds, transform=transform)
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
@@ -75,10 +83,6 @@ def get_dataloader(cfg, transform=None):
         collate_fn = None
         
         
-    if cfg["MODEL"]["SANITY_CHECK"] == 1: # TODO: sanity check is defined in m18_bmw yaml. Add it to other yaml files
-        train_loader = train_loader # TODO: change it for the data loaders to have only 1 sample and other elif statements for 2,5,10 samples
-        
-        
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                   shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
@@ -92,33 +96,29 @@ def get_dataloader(cfg, transform=None):
                             pin_memory=True, collate_fn = collate_fn)
     else:
         test_loader = None
-        
-    return train_loader, val_loader, test_loader
+    
+    class_weights = class_weighting.calc_weights(sets, cfg)
+    
+    return train_loader, val_loader, test_loader, class_weights
 
 
 def get_transform(cfg):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
-    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
-        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
+    elif (cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11") and cfg["DATASET"]["NAME"] == "UrbanSounds8K":
             transform = torchaudio.transforms.Resample(44100, 8000)
-        else:
-            raise ValueError("No matching transform for model: {}".format(cfg["MODEL"]["NAME"]))
-    elif cfg["DATASET"]["NAME"] == "BMW":
-        if cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
-            transform = torchaudio.transforms.Resample(4800, 8000)
     else:
         transform = None
     return transform
 
 
-def get_model(cfg):
+def get_model(cfg, weights):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg)
+        model = LitCRNN(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg)
+        model = lit_m18(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg)
+        model = lit_m11(cfg, weights)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     return model
@@ -129,7 +129,7 @@ def do_train(cfg):
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     logger.info("Training on device {}".format(device))
 
-    train_loader, val_loader, test_loader = get_dataloader(cfg, transform=get_transform(cfg))
+    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=get_transform(cfg))
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
@@ -138,8 +138,8 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
-
-    model = get_model(cfg)
+    
+    model = get_model(cfg, class_weights)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
