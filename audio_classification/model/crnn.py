@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence
+from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
 
 __all__ = ["LitCRNN"]
@@ -69,3 +71,33 @@ class LitCRNN(Classifier):
             out = self.linear(out)
 
         return out
+    
+    def training_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
+        loss = F.cross_entropy(out, y)
+        
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
+        loss = F.cross_entropy(out, y)
+        preds = torch.argmax(out, dim=1)
+        acc = accuracy(preds, y)
+
+        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_acc', acc, prog_bar=True)
+        return loss
+    
+    def test_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
+        loss = F.cross_entropy(out, y)
+        preds = torch.argmax(out, dim=1)
+        acc = accuracy(preds, y)
+
+        self.log('test_loss', loss, prog_bar=True)
+        self.log('test_acc', acc, prog_bar=True)
+        return loss

@@ -6,7 +6,7 @@ DATASET:
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
 DATALOADER:
-  BATCH_SIZE: 12
+  BATCH_SIZE: 1
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/m11'

@@ -22,7 +22,7 @@ class Classifier(pl.LightningModule, ABC):
         pass
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, _ = batch
         out = self(x)
         loss = F.cross_entropy(out, y)
         
@@ -30,7 +30,7 @@ class Classifier(pl.LightningModule, ABC):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, _ = batch
         out = self(x)
         loss = F.cross_entropy(out, y)
         preds = torch.argmax(out, dim=1)
@@ -41,7 +41,7 @@ class Classifier(pl.LightningModule, ABC):
         return loss
     
     def test_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, _ = batch
         out = self(x)
         loss = F.cross_entropy(out, y)
         preds = torch.argmax(out, dim=1)
