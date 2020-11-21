@@ -2,6 +2,10 @@ from torch.utils.data import Dataset
 import torchaudio
 import torch
 import os
+import numpy as np
+import pandas as pd
+import os.path
+from sklearn.model_selection import StratifiedKFold 
 
 __all__ = ["BMWDataset"]
 
@@ -11,13 +15,34 @@ class BMWDataset(Dataset):
     Wrapper for the BMW dataset.
     """
 
-    def __init__(self, cfg, transform=None):
+    def __init__(self, cfg, folder_list, transform=None):
         super().__init__()
-        self.classes, self.class_to_idx = self._find_classes(cfg["DATASET"]["FOLDER_PATH"])
-        self.audios, self.labels = self.make_dataset(
-            directory=cfg["DATASET"]["FOLDER_PATH"],
-            class_to_idx=self.class_to_idx
-        )
+        self.annotation_path = cfg["DATASET"]["ANNOTATION_PATH"]
+        if os.path.isfile(self.annotation_path):
+            csv_data = pd.read_csv(self.annotation_path)
+        else:
+            print("No existing annotation meta for BMW dataset. Generating...")
+            classes, class_to_idx = self._find_classes(cfg["DATASET"]["FOLDER_PATH"])
+            audios, labels = self.make_dataset(
+                directory=cfg["DATASET"]["FOLDER_PATH"],
+                class_to_idx=class_to_idx
+            )
+            csv_data = self.stratifed_kfold(np.array(audios), np.array(labels), 
+                                            n_split=11, shuffle=True, random_state=1,
+                                           save_path=self.annotation_path)
+            csv_data = csv_data.astype({'fold': 'int', 'classID': 'int'})
+        # initialize lists to hold file names, labels, and folder numbers
+        self.file_names = []
+        self.labels = []
+        self.folders = []
+        # loop through the csv entries and only add entries from folders in the folder list
+        for i in range(0, len(csv_data)):
+            if csv_data.iloc[i, 1] in folder_list:
+                self.file_names.append(csv_data.iloc[i, 0])
+                self.labels.append(csv_data.iloc[i, 2])
+                self.folders.append(csv_data.iloc[i, 1])
+
+        self.folder_list = folder_list
         self.transform = transform
 
     @staticmethod
@@ -57,20 +82,35 @@ class BMWDataset(Dataset):
 
         assert len(audios) == len(labels)
         return audios, labels
+    
+    @staticmethod
+    def stratifed_kfold(X, y, n_split=10, shuffle=True, random_state=1, save_path=None):
+        kfold = StratifiedKFold(n_splits=n_split, shuffle=shuffle, random_state=random_state)
+        meta = []
+        fold = 1
+        for train_ix, test_ix in kfold.split(X, y):
+            train_X, test_X = X[train_ix], X[test_ix]
+            train_y, test_y = y[train_ix], y[test_ix]
+            fold_meta = np.vstack((X[test_ix] ,np.full(len(test_y), fold) ,y[test_ix])).T.tolist()
+            meta += fold_meta
+            fold = fold + 1
+        df = pd.DataFrame(meta) # construct data frame and transpose
+        df = df.rename(columns={0: "slice_file_name", 1: "fold", 2: "classID"})
+        if save_path:
+            df.to_csv(save_path, header=True, index=False, sep=',')
+        return df
 
     def __len__(self):
-        length = len(self.audios)
+        length = len(self.file_names)
         return length
     
     def __getitem__(self, index):
-        data_dict = None
-        sound = torchaudio.load(self.audios[index], out=None, normalization=True)
+        sound = torchaudio.load(self.file_names[index], out=None, normalization=True)
         label = self.labels[index]
         audio = sound[0]
         if self.transform:
             audio = self.transform(audio)
-#         data_dict = {"audio": audio , "label": label}
-        
+    
         return audio, label
     
 # Add transform classes here if required!

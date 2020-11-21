@@ -7,7 +7,9 @@ MODEL:
     PAD_INPUT: 0
 DATASET:
   NAME: "BMW"
+  ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  VAL_FOLD: 10
   TRANSFORM:
     LENGTH: 184200
 DATALOADER:
@@ -16,8 +18,8 @@ DATALOADER:
 SOLVER:
   LOG_PATH: '../logs/'
   NUM_GPUS: 1
-  MAX_EPOCH: 10
-  MIN_EPOCH: 10
+  MAX_EPOCH: 3
+  MIN_EPOCH: 1
   LEARNING_RATE: 0.01
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 10

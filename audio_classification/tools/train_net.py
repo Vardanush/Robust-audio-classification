@@ -21,50 +21,41 @@ def collate(batch):
     Use torch.nn.utils.rnn.pack_padded_sequence
     
     '''
-    data = [item[0] for item in batch] # not including sr in the batch
-    target = [item[1] for item in batch]
-    length = [item.shape[-1] for item in data]
-    
-    max_length = max(length)
-    data =[torch.nn.functional.pad(item, (0, max_length - item.shape[-1])) for item in data]
+    data = [item['audio'][0] for item in batch] # not including sr in the batch
+    max_length = max([item.shape[1] for item in data])
+  
+    data =[adjust_len(item, max_length) for item in data]
     data=torch.stack(data)
-    
+    target = [item['label'] for item in batch]
     target = torch.LongTensor(target)
-    length = torch.LongTensor(length)
 
-    return [data, target, length]
+    return [data, target]
 
-def get_transform(cfg):
-    if cfg["MODEL"]["NAME"] == "LitCRNN":
-        transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
-    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
-        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
-            transform = torchaudio.transforms.Resample(44100, 8000)
-        else:
-            transform = None
-    else:
-        transform = None
-    return transform
 
 def get_dataloader(cfg, transform=None):
+    folds = list(range(1, 11))
+    val_folds = [cfg["DATASET"]["VAL_FOLD"]]
+    train_folds = [fold for fold in folds if fold not in val_folds]
+    
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
-        folds = list(range(1, 11))
-        val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-        train_folds = [fold for fold in folds if fold not in val_folds]
-
         # create train and test sets using chosen transform
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
-        sets = BMWDataset(cfg, transform=transform) # train, val, test split in the ratio 8:1:1
-        train_samples = len(sets)*80 // 100
-        val_samples = len(sets)*10 // 100
-        test_samples = len(sets) - train_samples - val_samples
-        
-        train_set, val_set, test_set = torch.utils.data.random_split(sets, [train_samples, 
-                                                                            val_samples, test_samples])
+        train_set = BMWDataset(cfg, train_folds, transform=transform)
+        val_set = BMWDataset(cfg, val_folds, transform=transform)   
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
+
+    if cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+        collate_fn = my_collate
+    else:
+        collate_fn = None
+        
+        
+    if cfg["MODEL"]["SANITY_CHECK"] == 1: # TODO: sanity check is defined in m18_bmw yaml. Add it to other yaml files
+        train_loader = train_loader # TODO: change it for the data loaders to have only 1 sample and other elif statements for 2,5,10 samples
+        
         
     collate_fn = collate    
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
@@ -73,15 +64,31 @@ def get_dataloader(cfg, transform=None):
     val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-        
-    if cfg["DATASET"]["NAME"] == "BMW":
-        test_loader = DataLoader(test_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                            num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                            pin_memory=True, collate_fn = collate_fn)
-    else:
-        test_loader = None
-        
+# TODO: add back test_loader        
+#     if cfg["DATASET"]["NAME"] == "BMW":
+#         test_loader = DataLoader(test_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
+#                             num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+#                             pin_memory=True, collate_fn = collate_fn)
+#     else:
+#         test_loader = None
+    test_loader = None
     return train_loader, val_loader, test_loader
+
+
+def get_transform(cfg):
+    if cfg["MODEL"]["NAME"] == "LitCRNN":
+        transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
+    elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+        if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
+            transform = torchaudio.transforms.Resample(44100, 8000)
+        else:
+            raise ValueError("No matching transform for model: {}".format(cfg["MODEL"]["NAME"]))
+    elif cfg["DATASET"]["NAME"] == "BMW":
+        if cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
+            transform = torchaudio.transforms.Resample(4800, 8000)
+    else:
+        transform = None
+    return transform
 
 
 def get_model(cfg):
