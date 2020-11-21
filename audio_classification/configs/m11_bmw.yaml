@@ -2,11 +2,12 @@ MODEL:
   NAME: "LitM11"
   NUM_CLASSES: 6
 DATASET:
-  NAME: "BMW"
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
+  NAME: "BMW"  
+  ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise' 
+  VAL_FOLD: 10
 DATALOADER:
-  BATCH_SIZE: 1
+  BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/m11'
