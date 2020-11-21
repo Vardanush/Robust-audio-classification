@@ -14,7 +14,7 @@ from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
 from argparse import ArgumentParser
 
-def my_collate(batch):
+def collate(batch):
     '''
     From https://discuss.pytorch.org/t/how-to-create-a-dataloader-with-variable-size-input/8278/3
     Keep in mind for RNN take hidden state corresponding to the last non padded input value
@@ -66,7 +66,7 @@ def get_dataloader(cfg, transform=None):
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
         
-    collate_fn = my_collate    
+    collate_fn = collate    
     train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
                                   shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
