@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
+from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
 
 __all__ = ["LitCRNN"]
