@@ -22,7 +22,6 @@ class LitCRNN(Classifier):
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
-        self.pad_input = cfg["MODEL"]["CRNN"]["PAD_INPUT"]
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -50,10 +49,8 @@ class LitCRNN(Classifier):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
-    def forward(self, x):
-        out = F.pad(x, (self.pad_input, self.pad_input))
-
-        out = F.max_pool2d(F.elu(self.bn1(self.conv1(out))), 2, stride=2)
+    def forward(self, x, seq_lens):
+        out = F.max_pool2d(F.elu(self.bn1(self.conv1(x))), 2, stride=2)
         out = self.dropout1(out)
         out = F.max_pool2d(F.elu(self.bn2(self.conv2(out))), 3, stride=3)
         out = self.dropout2(out)
@@ -64,6 +61,11 @@ class LitCRNN(Classifier):
 
         # shape (N, H, 1, L) -> # (L, N ,H)
         out = torch.squeeze(out, 2).permute(2, 0, 1)
+        seq_lens = torch.floor(seq_lens/96).type(torch.LongTensor)
+        seq_lens = torch.where(seq_lens > 0, seq_lens, 1)
+        # Use pack_padded_sequence to handle padded inputs
+        out = pack_padded_sequence(out, seq_lens, enforce_sorted=False)
+
         _, out = self.rnn(out)  # get the final hidden_state
         out = self.dropout_rnn(out)
         out = out[-1]  # use only the hidden_state in the last RNN layer
