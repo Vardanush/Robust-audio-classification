@@ -28,8 +28,9 @@ class BMWDataset(Dataset):
                 class_to_idx=class_to_idx
             )
             csv_data = self.stratifed_kfold(np.array(audios), np.array(labels), 
-                                            n_split=10, shuffle=True, random_state=1,
+                                            n_split=11, shuffle=True, random_state=1,
                                            save_path=self.annotation_path)
+            csv_data = csv_data.astype({'fold': 'int', 'classID': 'int'})
         # initialize lists to hold file names, labels, and folder numbers
         self.file_names = []
         self.labels = []
