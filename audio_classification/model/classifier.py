@@ -17,7 +17,7 @@ class Classifier(pl.LightningModule, ABC):
     """
 
     def __init__(self, class_weights, num_classes):
-        super().__init__()
+        super(Classifier, self).__init__()
         self.class_weights = class_weights
         self.precision = Precision(num_classes=num_classes, average='macro')
         self.recall = Recall(num_classes=num_classes, average='macro')
