@@ -27,6 +27,8 @@ def calc_weights(sets, cfg = None):
     
     if cfg["DATASET"]["WEIGHT"] == "SQUARED":
         class_weight = class_weight**2
+    elif cfg["DATASET"]["WEIGHT"] == "None":
+        class_weight = None
     
     return class_weight
     

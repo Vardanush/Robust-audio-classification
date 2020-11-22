@@ -58,6 +58,7 @@ def get_dataloader(cfg, transform=None):
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
+        sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform)
         val_set = BMWDataset(cfg, val_folds, transform=transform)
     else:
@@ -73,10 +74,10 @@ def get_dataloader(cfg, transform=None):
 
     class_weights = class_weighting.calc_weights(sets, cfg)
     test_loader = None
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader, test_loader, class_weights
 
 
-def get_model(cfg):
+def get_model(cfg, weights):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM18":
@@ -102,7 +103,9 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
-
+    
+    if class_weights is not None:
+        class_weights = torch.tensor(class_weights).to(device=device)
     model = get_model(cfg, class_weights)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
