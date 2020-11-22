@@ -15,13 +15,12 @@ class LitCRNN(Classifier):
     """
 
     def __init__(self, cfg, class_weights):
-        super().__init__(class_weights)
+        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"])
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
-        self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
