@@ -12,7 +12,7 @@ DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/us8k/'
   NUM_GPUS: 1
   MAX_EPOCH: 30
   MIN_EPOCH: 10
