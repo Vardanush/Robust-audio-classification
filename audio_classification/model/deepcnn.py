@@ -18,6 +18,7 @@ class LitDeepCNN(Classifier):
     
     def __init__(self, cfg, num_layers, class_weights):
         super().__init__(class_weights)
+        self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
