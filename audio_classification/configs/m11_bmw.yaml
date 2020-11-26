@@ -7,20 +7,21 @@ DATASET:
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   VAL_FOLD: 10
   FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
-  WEIGHT: "None" #"NORMAL" #"SQUARED"
+  WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 6
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/m11'
+  LOG_PATH: '../logs/m11/tuning'
   NUM_GPUS: 1
-  MAX_EPOCH: 30
+  MAX_EPOCH: 75
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.0001 #1e-4 in the paper
   STEP_SIZE: 7
   GAMMA: 0.1
+  TUNING: True
 CHECKPOINT:
   SAVE_NAME: "m11"
-  SAVE_PATH: '../weights'
+  SAVE_PATH: '../weights/tuning'
   SAVE_TOP_K: 1
