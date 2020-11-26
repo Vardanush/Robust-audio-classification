@@ -106,6 +106,7 @@ def do_train(cfg):
     
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
+        
     model = get_model(cfg, class_weights)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
@@ -116,7 +117,6 @@ def do_train(cfg):
 
     trainer.fit(model, train_loader, val_loader)
     
-    return test_loader
 
 
 if __name__ == "__main__":

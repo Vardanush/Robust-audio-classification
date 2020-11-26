@@ -60,20 +60,6 @@ class Classifier(pl.LightningModule, ABC):
         self.log('test_acc', acc, prog_bar=True)
         return loss
 
-    def test_step(self, batch, batch_idx):
-        x, y, _ = batch
-        out = self(x)
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
-        else:
-            loss = F.cross_entropy(out, y)
-        preds = torch.argmax(out, dim=1)
-        acc = accuracy(preds, y)
-
-        self.log('test_loss', loss, prog_bar=True)
-        self.log('test_acc', acc, prog_bar=True)
-        return loss
-
     def configure_optimizers(self):
         optimizer = optim.Adam(
             self.parameters(),
