@@ -7,7 +7,7 @@ DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  VAL_FOLD: 10
+  VAL_FOLD: 1
 DATALOADER:
   BATCH_SIZE: 8
   NUM_WORKERS: 20
