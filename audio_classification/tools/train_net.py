@@ -42,12 +42,12 @@ def get_transform(cfg):
         if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
             transform = torchaudio.transforms.Resample(44100, 8000)
         else:
-            transform = torchaudio.transforms.Resample(4800, 8000)
+            transform = None
     else:
         transform = None
     return transform
 
-def get_dataloader(cfg, trial_hparams,transform=None):
+def get_dataloader(cfg, transform=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
     train_folds = [fold for fold in folds if fold not in val_folds]
@@ -65,34 +65,25 @@ def get_dataloader(cfg, trial_hparams,transform=None):
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
     collate_fn = collate
-    
-    if trial_hparams is not None:
-        train_loader = DataLoader(train_set, batch_size=trial_hparams["batch_size"],
-                                      shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                      pin_memory=True, collate_fn = collate_fn)
-        val_loader = DataLoader(val_set, batch_size=trial_hparams["batch_size"],
-                                    num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                    pin_memory=True, collate_fn = collate_fn) 
-    else:
-        train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                                      shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                      pin_memory=True, collate_fn = collate_fn)
-        val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                                    num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                    pin_memory=True, collate_fn = collate_fn)
+    train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
+                                  shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                  pin_memory=True, collate_fn = collate_fn)
+    val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
+                                num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                pin_memory=True, collate_fn = collate_fn)
 
     class_weights = class_weighting.calc_weights(sets, cfg)
     test_loader = None
     return train_loader, val_loader, test_loader, class_weights
 
 
-def get_model(cfg, trial_hparams, weights, train_loader, val_loader):
+def get_model(cfg, weights):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = LitCRNN(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = lit_m18(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = lit_m11(cfg, weights)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     return model
@@ -102,10 +93,8 @@ def do_train(cfg):
     logger = logging.getLogger(__name__)
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     logger.info("Training on device {}".format(device))
-    
-    trial_hparams = None # no hyperparameter tuning here
 
-    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg))
+    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=get_transform(cfg))
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
@@ -117,7 +106,8 @@ def do_train(cfg):
     
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
-    model = get_model(cfg, trial_hparams, class_weights)
+        
+    model = get_model(cfg, class_weights)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
@@ -127,7 +117,6 @@ def do_train(cfg):
 
     trainer.fit(model, train_loader, val_loader)
     
-    return
 
 
 if __name__ == "__main__":

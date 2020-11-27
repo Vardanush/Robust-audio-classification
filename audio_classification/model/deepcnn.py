@@ -16,12 +16,13 @@ class LitDeepCNN(Classifier):
     Implementation from paper https://arxiv.org/pdf/1610.00087.pdf
     """
     
-    def __init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader):
-        super().__init__(class_weights, trial_hparams, train_loader, val_loader)
+    def __init__(self, cfg, num_layers, class_weights):
+        super().__init__(class_weights)
+        self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
-        self.gamma = cfg["SOLVER"]["GAMMA"]      
+        self.gamma = cfg["SOLVER"]["GAMMA"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
         
         modules = []
@@ -81,12 +82,12 @@ class LitDeepCNN(Classifier):
 
 class lit_m11(LitDeepCNN):
     
-    def __init__(self, cfg, trial_hparams, class_weights, train_loader, val_loader, num_layers = [2,2,3,2]):
-        LitDeepCNN.__init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader)
+    def __init__(self, cfg, class_weights, num_layers = [2,2,3,2]):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
 
 
 class lit_m18(LitDeepCNN):
     
-    def __init__(self, cfg, trial_hparams, class_weights, train_loader, val_loader, num_layers = [4,4,4,4]):
-        LitDeepCNN.__init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader)
+    def __init__(self, cfg, class_weights, num_layers = [4,4,4,4]):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
         
