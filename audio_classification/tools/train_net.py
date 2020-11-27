@@ -67,26 +67,23 @@ def get_dataloader(cfg, trial_hparams,transform=None):
     collate_fn = collate
     
     if trial_hparams is not None:
-        train_loader = DataLoader(train_set, batch_size=trial_hparams["batch_size"],
-                                      shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                      pin_memory=True, collate_fn = collate_fn)
-        val_loader = DataLoader(val_set, batch_size=trial_hparams["batch_size"],
-                                    num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                    pin_memory=True, collate_fn = collate_fn) 
+        batch_size = trial_hparams["batch_size"]
     else:
-        train_loader = DataLoader(train_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                                      shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                      pin_memory=True, collate_fn = collate_fn)
-        val_loader = DataLoader(val_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                                    num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                    pin_memory=True, collate_fn = collate_fn)
+        batch_size = cfg["DATALOADER"]["BATCH_SIZE"]
+
+    train_loader = DataLoader(train_set, batch_size=batch_size,
+                                  shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                  pin_memory=True, collate_fn = collate_fn)
+    val_loader = DataLoader(val_set, batch_size=batch_size,
+                                num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                pin_memory=True, collate_fn = collate_fn)
 
     class_weights = class_weighting.calc_weights(sets, cfg)
     test_loader = None
     return train_loader, val_loader, test_loader, class_weights
 
 
-def get_model(cfg, trial_hparams, weights, train_loader, val_loader):
+def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN(cfg, trial_hparams, weights, train_loader, val_loader)
     elif cfg["MODEL"]["NAME"] == "LitM18":
@@ -117,7 +114,7 @@ def do_train(cfg):
     
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
-    model = get_model(cfg, trial_hparams, class_weights)
+    model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
