@@ -1,6 +1,7 @@
 MODEL:
   NAME: "LitM18"
   NUM_CLASSES: 6
+  LOAD: "NONE"
 DATASET:
   NAME: "BMW"  
   ANNOTATION_PATH: '../datasets/BMW/meta/bmw.csv'

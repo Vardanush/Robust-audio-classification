@@ -78,14 +78,25 @@ def get_dataloader(cfg, transform=None):
 
 
 def get_model(cfg, weights):
-    if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg, weights)
-    elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg, weights)
-    elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg, weights)
+    if cfg["MODEL"]["LOAD"] == "NONE":
+        if cfg["MODEL"]["NAME"] == "LitCRNN":
+            model = LitCRNN(cfg, weights)
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            model = lit_m18(cfg, weights)
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            model = lit_m11(cfg, weights)
+        else:
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     else:
-        raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+        if cfg["MODEL"]["NAME"] == "LitCRNN": #todo: fix loading
+            model = LitCRNN.load_from_checkpoint(checkpoint_path=cfg["MODEL"]["LOAD"], kwargs=weights)
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            model = lit_m18.load_from_checkpoint(checkpoint_path=cfg["MODEL"]["LOAD"], kwargs=weights)
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            model = lit_m11.load_from_checkpoint(checkpoint_path=cfg["MODEL"]["LOAD"], kwargs=weights)
+        else:
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+       
     return model
 
 

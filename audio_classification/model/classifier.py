@@ -65,7 +65,4 @@ class Classifier(pl.LightningModule, ABC):
             self.parameters(),
             lr=self.learning_rate,
             weight_decay=self.weight_decay)
-        scheduler = optim.lr_scheduler.StepLR(
-            optimizer, self.step_size,
-            gamma=self.gamma)
-        return [optimizer], [scheduler]
+        return [optimizer]

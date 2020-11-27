@@ -1,6 +1,7 @@
 MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
+  LOAD: "NONE"
   CRNN:
     INCLUDE_TOP: True
 DATASET:
