@@ -7,7 +7,7 @@ DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "NORMAL" #"SQUARED" #"None"
+  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 10
 DATALOADER:
   BATCH_SIZE: 8
@@ -15,12 +15,12 @@ DATALOADER:
 SOLVER:
   LOG_PATH: '../logs/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
-  MIN_EPOCH: 1
-  LEARNING_RATE: 0.01
+  MAX_EPOCH: 50
+  MIN_EPOCH: 10
+  LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
-  STEP_SIZE: 10
-  GAMMA: 0.1
+  STEP_SIZE: 20
+  GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
   SAVE_PATH: '../weights'
