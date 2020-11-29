@@ -15,7 +15,7 @@ class LitCRNN(Classifier):
     """
 
     def __init__(self, cfg, class_weights):
-        super().__init__(class_weights)
+        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"])
         self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
@@ -23,7 +23,7 @@ class LitCRNN(Classifier):
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
-       
+
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(64)
@@ -78,7 +78,7 @@ class LitCRNN(Classifier):
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-        
+
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
@@ -90,12 +90,12 @@ class LitCRNN(Classifier):
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-        
+
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
             loss = F.cross_entropy(out, y)
-            
+
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
@@ -106,12 +106,12 @@ class LitCRNN(Classifier):
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-        
+
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
             loss = F.cross_entropy(out, y)
-            
+
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
