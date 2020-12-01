@@ -78,22 +78,10 @@ def get_dataloader(cfg, trial_hparams,transform=None):
     val_loader = DataLoader(val_set, batch_size=batch_size,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-    if cfg["DATASET"]["NAME"] == "BMW":
-        test_loader = DataLoader(test_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
-                                num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
-                                pin_memory=True, collate_fn = collate_fn)
-    else:
-        test_loader = None
 
-    # TODO:move class weight to configs
     class_weights = class_weighting.calc_weights(sets, cfg)
-    print(class_weights)
-    if class_weights is not None:
-        class_weights = torch.tensor(class_weights)
-        
-    test_loader = None
 
-    return train_loader, val_loader, test_loader, class_weights
+    return train_loader, val_loader, class_weights
 
 
 def get_model(cfg, weights, trial_hparams=None, train_loader=None, val_loader=None, num_classes=None):
@@ -115,7 +103,9 @@ def do_train(cfg):
     
     trial_hparams = None # no hyperparameter tuning here
 
-    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg))
+    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg))
+    if class_weights is not None:
+        class_weights = torch.tensor(class_weights).to(device=device)
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
@@ -124,8 +114,8 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
-        
-    model = get_model(cfg, class_weights.to(device=device), trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
+   
+    model = get_model(cfg, class_weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],

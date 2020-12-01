@@ -8,15 +8,16 @@ DATASET:
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10
-  WEIGHT: "NORMAL" #"SQUARED"
+  WEIGHT: "None" #"SQUARED" #"NORMAL" #"None"
 DATALOADER:
   BATCH_SIZE: 12
   NUM_WORKERS: 20
+LOSS: 'label_smoothing_cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/'
   NUM_GPUS: 1
-  MAX_EPOCH: 30
-  MIN_EPOCH: 10
+  MAX_EPOCH: 3
+  MIN_EPOCH: 1
   LEARNING_RATE: 0.01
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 7

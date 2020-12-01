@@ -3,12 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
-from pytorch_lightning.metrics.functional import accuracy
-from .classifier import Classifier
-from pytorch_lightning.metrics import Precision, Recall
-from sklearn.metrics import classification_report
+
 import pytorch_lightning as pl
-from ..utils import label_smoothing_cross_entropy
+from pytorch_lightning.metrics.functional import accuracy
+
+from ..utils import get_loss
 
 __all__ = ["LitCRNN"]
 
@@ -28,6 +27,7 @@ class LitCRNN(pl.LightningModule):
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
+        self.loss = get_loss(loss_fn=cfg['LOSS'])
         self.class_weights = class_weights
 
         # Conv block 1
@@ -86,12 +86,7 @@ class LitCRNN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-
-        loss = label_smoothing_cross_entropy(out, y)
-#         if self.class_weights is not None:
-#             loss = F.cross_entropy(out, y, weight=self.class_weights)
-#         else:
-#             loss = F.cross_entropy(out, y)
+        loss = self.loss(out, y, weight=self.class_weights)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -100,8 +95,8 @@ class LitCRNN(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-
-        loss = label_smoothing_cross_entropy(out, y)
+        loss = self.loss(out, y, weight=self.class_weights)
+#         loss = label_smoothing_cross_entropy(out, y)
 #         if self.class_weights is not None:
 #             loss = F.cross_entropy(out, y, weight=self.class_weights)
 #         else:
@@ -118,13 +113,8 @@ class LitCRNN(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
+        loss = F.cross_entropy(out, y, weight=self.class_weights)
         
-        loss = label_smoothing_cross_entropy(out, y)
-#         if self.class_weights is not None:
-#             loss = F.cross_entropy(out, y, weight=self.class_weights)
-#         else:
-#             loss = F.cross_entropy(out, y)
-
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
