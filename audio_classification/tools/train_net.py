@@ -61,6 +61,7 @@ def get_dataloader(cfg, trial_hparams,transform=None):
         sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform)
         val_set = BMWDataset(cfg, val_folds, transform=transform)
+        test_set = BMWDataset(cfg, [11], transform=transform)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
@@ -77,9 +78,14 @@ def get_dataloader(cfg, trial_hparams,transform=None):
     val_loader = DataLoader(val_set, batch_size=batch_size,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
+    if cfg["DATASET"]["NAME"] == "BMW":
+        test_loader = DataLoader(test_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
+                                num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                pin_memory=True, collate_fn = collate_fn)
+    else:
+        test_loader = None
 
     class_weights = class_weighting.calc_weights(sets, cfg)
-    test_loader = None
     return train_loader, val_loader, test_loader, class_weights
 
 
