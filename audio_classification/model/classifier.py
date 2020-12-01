@@ -15,7 +15,7 @@ class Classifier(pl.LightningModule, ABC):
     """
     Abstract base class for classifier models.
     """
-
+    
     def __init__(self, class_weights, trial_hparams, train_loader, val_loader, num_classes):
         super(Classifier, self).__init__()
         self.class_weights = class_weights
@@ -56,16 +56,9 @@ class Classifier(pl.LightningModule, ABC):
             loss = F.cross_entropy(out, y)
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
-        """
-        precision = self.val_precision(preds, y)
-        recall = self.val_recall(preds, y)
-        """
+
         self.log('val_loss', loss, on_epoch=True, prog_bar=True)
         self.log('val_acc', acc, on_epoch=True, prog_bar=True)
-        """
-        self.log('val_precision', precision, prog_bar=True)
-        self.log('val_recall', recall, prog_bar=True)
-        """
         return loss, y, preds
 
     def test_step(self, batch, batch_idx):

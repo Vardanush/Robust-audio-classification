@@ -1,27 +1,34 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
+from pytorch_lightning.metrics import Precision, Recall
+from sklearn.metrics import classification_report
+import pytorch_lightning as pl
+from ..utils import label_smoothing_cross_entropy
 
 __all__ = ["LitCRNN"]
 
 
-class LitCRNN(Classifier):
+class LitCRNN(pl.LightningModule):
     """
     Covolutional recurrent neural network. Pytorch-Lightning Version.
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
     def __init__(self, cfg, class_weights):
-        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"])
+        super().__init__()
         self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
+        self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
+        self.class_weights = class_weights
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -49,6 +56,7 @@ class LitCRNN(Classifier):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
+            
     def forward(self, x, seq_lens):
         out = F.max_pool2d(F.elu(self.bn1(self.conv1(x))), 2, stride=2)
         out = self.dropout1(out)
@@ -73,27 +81,31 @@ class LitCRNN(Classifier):
             out = self.linear(out)
 
         return out
+
     
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
 
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
-        else:
-            loss = F.cross_entropy(out, y)
+        loss = label_smoothing_cross_entropy(out, y)
+#         if self.class_weights is not None:
+#             loss = F.cross_entropy(out, y, weight=self.class_weights)
+#         else:
+#             loss = F.cross_entropy(out, y)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
+    
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
 
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
-        else:
-            loss = F.cross_entropy(out, y)
+        loss = label_smoothing_cross_entropy(out, y)
+#         if self.class_weights is not None:
+#             loss = F.cross_entropy(out, y, weight=self.class_weights)
+#         else:
+#             loss = F.cross_entropy(out, y)
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
@@ -102,14 +114,16 @@ class LitCRNN(Classifier):
         self.log('val_acc', acc, prog_bar=True)
         return loss
     
+    
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
-        else:
-            loss = F.cross_entropy(out, y)
+        
+        loss = label_smoothing_cross_entropy(out, y)
+#         if self.class_weights is not None:
+#             loss = F.cross_entropy(out, y, weight=self.class_weights)
+#         else:
+#             loss = F.cross_entropy(out, y)
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
@@ -117,3 +131,17 @@ class LitCRNN(Classifier):
         self.log('test_loss', loss, prog_bar=True)
         self.log('test_acc', acc, prog_bar=True)
         return loss
+    
+    
+    def configure_optimizers(self):
+
+        optimizer = optim.Adam(
+            params=self.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay)
+
+        scheduler = optim.lr_scheduler.StepLR(
+            optimizer, self.step_size,
+            gamma=self.gamma)
+
+        return [optimizer], [scheduler]

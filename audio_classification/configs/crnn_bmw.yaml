@@ -8,21 +8,22 @@ DATASET:
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
+  CLASS_WEIGHTS: [835.4845, 219.18428, 21.146059, 6.0884547, 19.920465, 383.40143] #NORMAL [28.904749  14.804873   4.5984845  2.4674795  4.463235  19.580639 ]
   VAL_FOLD: 10
 DATALOADER:
   BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
-  MAX_EPOCH: 50
+  MAX_EPOCH: 125
   MIN_EPOCH: 10
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
-  STEP_SIZE: 20
+  STEP_SIZE: 25
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights'
+  SAVE_PATH: '../weights/bmw/'
   SAVE_TOP_K: 1
 

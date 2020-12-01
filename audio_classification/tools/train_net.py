@@ -85,17 +85,24 @@ def get_dataloader(cfg, trial_hparams,transform=None):
     else:
         test_loader = None
 
+    # TODO:move class weight to configs
     class_weights = class_weighting.calc_weights(sets, cfg)
+    print(class_weights)
+    if class_weights is not None:
+        class_weights = torch.tensor(class_weights)
+        
+    test_loader = None
+
     return train_loader, val_loader, test_loader, class_weights
 
 
-def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
+def get_model(cfg, weights, trial_hparams=None, train_loader=None, val_loader=None, num_classes=None):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = LitCRNN(cfg, weights)
     elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = lit_m18(cfg, trial_hparams, weights, train_loader, val_loader, num_classes)
     elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg, trial_hparams, weights, train_loader, val_loader)
+        model = lit_m11(cfg, trial_hparams, weights, train_loader, val_loader, num_classes)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     return model
@@ -117,10 +124,8 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
-    
-    if class_weights is not None:
-        class_weights = torch.tensor(class_weights).to(device=device)
-    model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
+        
+    model = get_model(cfg, class_weights.to(device=device), trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
