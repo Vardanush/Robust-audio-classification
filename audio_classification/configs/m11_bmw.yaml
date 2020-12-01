@@ -9,7 +9,7 @@ DATASET:
   FOLDER_PATH_TRIM: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim' # didnt add this to bmw.py
   WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/m11/10-fold'
@@ -17,7 +17,7 @@ SOLVER:
   MAX_EPOCH: 50
   MIN_EPOCH: 1
   LEARNING_RATE: 0.000015984826253924876
-  WEIGHT_DECAY: 0.000012743200395718975 # 1e-4 in the paper
+  WEIGHT_DECAY: 0.000012743200395718975  #1e-4 in the paper
   STEP_SIZE: 7
   GAMMA: 0.1
 CHECKPOINT:
