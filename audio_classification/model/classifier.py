@@ -14,9 +14,12 @@ class Classifier(pl.LightningModule, ABC):
     Abstract base class for classifier models.
     """
 
-    def __init__(self, class_weights):
+    def __init__(self, class_weights, trial_hparams, train_loader, val_loader):
         super().__init__()
         self.class_weights = class_weights
+        self.hparameters = trial_hparams
+        self.train_loader = train_loader
+        self.val_loader = val_loader
 
     def forward(self, x):
         pass
@@ -59,13 +62,32 @@ class Classifier(pl.LightningModule, ABC):
         self.log('test_loss', loss, prog_bar=True)
         self.log('test_acc', acc, prog_bar=True)
         return loss
+    
+    def train_dataloader(self):
+        return self.train_loader
+
+    def val_dataloader(self):
+        return self.val_loader
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(
-            self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay)
-        scheduler = optim.lr_scheduler.StepLR(
-            optimizer, self.step_size,
-            gamma=self.gamma)
-        return [optimizer], [scheduler]
+
+        if self.hparameters is not None:
+            optimizer = optim.Adam(
+                params=self.parameters(),
+                lr=self.hparameters["learning_rate"],
+                weight_decay=self.hparameters["weight_decay"])
+
+            return [optimizer]
+        else:
+            optimizer = optim.Adam(
+                params=self.parameters(),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay)
+
+            scheduler = optim.lr_scheduler.StepLR(
+                optimizer, self.step_size,
+                gamma=self.gamma)
+
+            return [optimizer], [scheduler]
+
+
