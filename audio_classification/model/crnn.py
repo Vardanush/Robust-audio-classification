@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
+from pytorch_lightning.metrics import Precision, Recall
 
 __all__ = ["LitCRNN"]
 
@@ -14,14 +15,23 @@ class LitCRNN(Classifier):
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
-    def __init__(self, cfg, class_weights):
-        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"])
+    def __init__(self, cfg, class_weights, trial_hparams = None, train_loader = None, val_loader = None):
+        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"], trial_hparams, train_loader, val_loader)
         self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
+        num_classes = cfg["MODEL"]["NUM_CLASSES"]
+        """
+         "macro" => computes precision and recall per class and takes the mean
+         "micro" => computes precision and recall globally
+        """
+        self.val_precision = Precision(num_classes=num_classes, average='macro')
+        self.val_recall = Recall(num_classes=num_classes, average='macro')
+        self.test_precision = Precision(num_classes=num_classes, average='macro')
+        self.test_recall = Recall(num_classes=num_classes, average='macro')
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -97,10 +107,15 @@ class LitCRNN(Classifier):
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
-
-        self.log('val_loss', loss, prog_bar=True)
-        self.log('val_acc', acc, prog_bar=True)
-        return loss
+        
+        precision = self.val_precision(preds, y)
+        recall = self.val_recall(preds, y)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True)
+        self.log('val_acc', acc, on_epoch=True, prog_bar=True)
+        self.log('val_precision', precision, prog_bar=True)
+        self.log('val_recall', recall, prog_bar=True)
+        
+        return loss, y, preds
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
@@ -113,7 +128,12 @@ class LitCRNN(Classifier):
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
-
+        
+        precision = self.test_precision(preds, y)
+        recall = self.test_recall(preds, y)
         self.log('test_loss', loss, prog_bar=True)
         self.log('test_acc', acc, prog_bar=True)
-        return loss
+        self.log('test_precision', precision, prog_bar=True)
+        self.log('test_recall', recall, prog_bar=True)
+        
+        return loss, y, preds

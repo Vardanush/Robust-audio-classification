@@ -4,6 +4,7 @@ from audio_classification.model import lit_m11, LitCRNN
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 import yaml
+import warnings
 
 def get_model(cfg, checkpoint_path, class_weights, map_location):
     """
@@ -37,21 +38,23 @@ def get_model(cfg, checkpoint_path, class_weights, map_location):
 
 def do_test(configs, checkpoint_path):
 
-    _, _, test_loader, class_weights = get_dataloader(configs, transform=get_transform(configs))
-
+    _, _, test_loader, class_weights = get_dataloader(configs, trial_hparams = None, transform=get_transform(configs))
+    print("dataloading done")
+    
     if torch.cuda.is_available():
         map_location = 'cuda'
     else:
         map_location = 'cpu'
 
     model = get_model(configs, checkpoint_path, class_weights, map_location)
-
+    print("model loaded")
+    
     trainer = pl.Trainer()
+    print("testing....")
     trainer.test(model, test_dataloaders=test_loader)
     
 if __name__ == "__main__":
-    #warnings.filterwarnings('ignore')
-    print("in main!")
+    warnings.filterwarnings('ignore')
     parser = ArgumentParser()
     parser.add_argument('--config', default="/nfs/students/winter-term-2020/project-1/project-1/audio_classification/configs/m11_bmw.yaml")
     parser.add_argument('--path', default="/nfs/students/winter-term-2020/project-1/project-1/weights/m11-fold7-epoch=130-val_acc=0.934.ckpt")
