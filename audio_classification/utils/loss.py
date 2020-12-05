@@ -12,7 +12,7 @@ def get_loss(loss_fn='cross_entropy'):
         raise Exception("Loss function not found. Please specify a valid loss function.")
     
 
-def label_smoothing_cross_entropy(preds, targets, weight=None, epsilon=0.1):
+def label_smoothing_cross_entropy(preds, targets, weight=None, epsilon=0.01):
     """
     Label smoothing from the paper "Rethinking the Inception Architecture for Computer Vision"
     """

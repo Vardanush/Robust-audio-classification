@@ -7,16 +7,16 @@ DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "SQUARED" #"SQUARED" #"None" # "NORMAL"
+  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 10
 DATALOADER:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 8 #8
   NUM_WORKERS: 20
 LOSS: 'label_smoothing_cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
+  MAX_EPOCH: 125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001

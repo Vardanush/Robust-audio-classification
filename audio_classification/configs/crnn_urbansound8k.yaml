@@ -16,12 +16,12 @@ LOSS: 'label_smoothing_cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/us8k/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
+  MAX_EPOCH: 125
   MIN_EPOCH: 1
-  LEARNING_RATE: 0.01
-  WEIGHT_DECAY: 0.001
-  STEP_SIZE: 7
-  GAMMA: 0.1
+  LEARNING_RATE: 0.001
+  WEIGHT_DECAY: 0.01
+  STEP_SIZE: 25
+  GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
   SAVE_PATH: '../weights'

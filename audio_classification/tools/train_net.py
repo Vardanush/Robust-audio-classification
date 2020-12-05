@@ -114,7 +114,7 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
-   
+
     model = get_model(cfg, class_weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
