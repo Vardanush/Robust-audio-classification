@@ -7,7 +7,7 @@ import torch.optim as optim
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.metrics import Precision, Recall
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 
 __all__ = ['Classifier']
 
@@ -87,6 +87,22 @@ class Classifier(pl.LightningModule, ABC):
         self.log('test_recall', recall, prog_bar=True)
    
         return loss, y, preds
+
+    def test_epoch_end(self, test_outputs):
+        y = []
+        y_pred = []
+        for output in test_outputs:
+            true_label = list(output[1].cpu().numpy())
+            predict = list(output[2].cpu().numpy())
+            y += true_label
+            y_pred += predict
+        
+        report = classification_report(y,y_pred)
+        matrix = confusion_matrix(y, y_pred) 
+        print("Precision and recall per class:")
+        print(report)
+        print("Confusion matrix:")
+        print(matrix)
         
 
     def train_dataloader(self):

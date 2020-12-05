@@ -5,7 +5,6 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
 from pytorch_lightning.metrics import Precision, Recall
-from sklearn.metrics import classification_report
 
 __all__ = ["LitCRNN"]
 
@@ -128,22 +127,4 @@ class LitCRNN(Classifier):
         self.log('test_recall', recall, prog_bar=True)
         
         return loss, y, preds
-
-    """
-    Work in progress to add precision and recall per class
-    
-    def test_epoch_end(self, val_outputs):
-        print("end of test epoch")
-        avg_loss = 0
-        for output in val_outputs:
-            true_label = output[1].cpu().numpy()
-            predict =output[2].cpu().numpy()
-            avg_loss +=output[0].cpu().numpy()
-            report = classification_report(true_label,predict)
-            print(report)
-        report = report/len(val_outputs)
-        print("loss on complete val set", avg_loss/len(val_outputs))
-        print(report)
-        return report
         
-    """
