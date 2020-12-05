@@ -5,8 +5,8 @@ MODEL:
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/trimmed/bmw.csv'
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim'
   WEIGHT: "NORMAL" #"SQUARED" #"None"
   VAL_FOLD: 10
 DATALOADER:
@@ -15,14 +15,14 @@ DATALOADER:
 SOLVER:
   LOG_PATH: '../logs/week-5'
   NUM_GPUS: 1
-  MAX_EPOCH: 50
-  MIN_EPOCH: 10
+  MAX_EPOCH: 5
+  MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 20
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights'
+  SAVE_PATH: '../weights/week-5'
   SAVE_TOP_K: 1
 

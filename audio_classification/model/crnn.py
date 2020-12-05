@@ -5,6 +5,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
 from pytorch_lightning.metrics import Precision, Recall
+from sklearn.metrics import classification_report
 
 __all__ = ["LitCRNN"]
 
@@ -23,15 +24,6 @@ class LitCRNN(Classifier):
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
-        num_classes = cfg["MODEL"]["NUM_CLASSES"]
-        """
-         "macro" => computes precision and recall per class and takes the mean
-         "micro" => computes precision and recall globally
-        """
-        self.val_precision = Precision(num_classes=num_classes, average='macro')
-        self.val_recall = Recall(num_classes=num_classes, average='macro')
-        self.test_precision = Precision(num_classes=num_classes, average='macro')
-        self.test_recall = Recall(num_classes=num_classes, average='macro')
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -120,7 +112,6 @@ class LitCRNN(Classifier):
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
@@ -137,3 +128,22 @@ class LitCRNN(Classifier):
         self.log('test_recall', recall, prog_bar=True)
         
         return loss, y, preds
+
+    """
+    Work in progress to add precision and recall per class
+    
+    def test_epoch_end(self, val_outputs):
+        print("end of test epoch")
+        avg_loss = 0
+        for output in val_outputs:
+            true_label = output[1].cpu().numpy()
+            predict =output[2].cpu().numpy()
+            avg_loss +=output[0].cpu().numpy()
+            report = classification_report(true_label,predict)
+            print(report)
+        report = report/len(val_outputs)
+        print("loss on complete val set", avg_loss/len(val_outputs))
+        print(report)
+        return report
+        
+    """

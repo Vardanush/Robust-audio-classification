@@ -119,6 +119,8 @@ def do_train(cfg):
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
         
+    trial_hparams = None
+        
     model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],

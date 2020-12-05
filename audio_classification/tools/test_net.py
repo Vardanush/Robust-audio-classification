@@ -1,16 +1,12 @@
 import torch
 from audio_classification.tools import get_dataloader, get_transform
-from audio_classification.model import lit_m11, LitCRNN
+from audio_classification.model import lit_m11, lit_m18, LitCRNN
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 import yaml
 import warnings
 
 def get_model(cfg, checkpoint_path, class_weights, map_location):
-    """
-        Precision and recall metrics are commented in classifier.py to accommodate weights which did not include it. 
-        Uncomment it to train newly trained models.
-    """
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN.load_from_checkpoint(
                             checkpoint_path=checkpoint_path,
@@ -39,7 +35,7 @@ def get_model(cfg, checkpoint_path, class_weights, map_location):
 def do_test(configs, checkpoint_path):
 
     _, _, test_loader, class_weights = get_dataloader(configs, trial_hparams = None, transform=get_transform(configs))
-    print("dataloading done")
+    device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     
     if torch.cuda.is_available():
         map_location = 'cuda'
@@ -47,10 +43,8 @@ def do_test(configs, checkpoint_path):
         map_location = 'cpu'
 
     model = get_model(configs, checkpoint_path, class_weights, map_location)
-    print("model loaded")
     
-    trainer = pl.Trainer()
-    print("testing....")
+    trainer = pl.Trainer(gpus=configs["SOLVER"]["NUM_GPUS"])
     trainer.test(model, test_dataloaders=test_loader)
     
 if __name__ == "__main__":
