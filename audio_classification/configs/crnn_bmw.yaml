@@ -5,10 +5,11 @@ MODEL:
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 10
+  AUGMENTATION: 'random'
 DATALOADER:
   BATCH_SIZE: 8 #8
   NUM_WORKERS: 20

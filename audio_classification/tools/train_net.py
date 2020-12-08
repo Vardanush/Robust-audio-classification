@@ -11,7 +11,7 @@ from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
 from audio_classification.model import LitCRNN
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
-from audio_classification.utils import audio_transform
+from audio_classification.utils import audio_transform, random_augment
 from audio_classification.utils import class_weighting
 from argparse import ArgumentParser
 
@@ -47,7 +47,14 @@ def get_transform(cfg):
         transform = None
     return transform
 
-def get_dataloader(cfg, trial_hparams,transform=None):
+def get_augment(cfg):
+    if cfg['DATASET']['AUGMENTATION'] == 'random':
+        augment = random_augment(cfg=cfg)
+    else: 
+        augment = None
+    return augment
+
+def get_dataloader(cfg, trial_hparams,transform=None, augment=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
     train_folds = [fold for fold in folds if fold not in val_folds]
@@ -59,9 +66,9 @@ def get_dataloader(cfg, trial_hparams,transform=None):
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
     elif cfg["DATASET"]["NAME"] == "BMW":
         sets = BMWDataset(cfg, folds, transform=transform)
-        train_set = BMWDataset(cfg, train_folds, transform=transform)
-        val_set = BMWDataset(cfg, val_folds, transform=transform)
-        test_set = BMWDataset(cfg, [11], transform=transform)
+        train_set = BMWDataset(cfg, train_folds, transform=transform, augment=augment)
+        val_set = BMWDataset(cfg, val_folds, transform=transform, augment=augment)
+        test_set = BMWDataset(cfg, [11], transform=transform, augment=augment)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
@@ -103,7 +110,7 @@ def do_train(cfg):
     
     trial_hparams = None # no hyperparameter tuning here
 
-    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg))
+    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg), augment=get_augment(cfg))
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])

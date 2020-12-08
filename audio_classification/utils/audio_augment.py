@@ -4,21 +4,21 @@ import torchaudio
 import augment
 import numpy as np
 
-__all__ = ["get_augment"]
+__all__ = ["random_augment"]
 
     
-def get_augment(cfg=None):     
+def random_augment(cfg=None):     
     # randomly transform the audio clip with pitch shift, reverberation and addtive noise
-    random_delay_seconds = lambda: np.random.uniform(0, 1)
     random_tempo_ratio = lambda: np.random.uniform(0.75, 1.25)
     random_pitch_shift = lambda: np.random.randint(-200, +200)
     random_room_size = lambda: np.random.randint(0, 101)
+    # random_delay_seconds = lambda: np.random.uniform(0, 1)
     # noise_generator = lambda: torch.zeros_like(x).uniform_()
     combination = augment.EffectChain() \
-        .delay(random_delay_seconds) \
         .tempo("-q", random_tempo_ratio) \
-        .pitch("-q", random_pitch_shift).rate(sr) \
+        .pitch("-q", random_pitch_shift).rate(48000) \
         .reverb(50, 50, random_room_size).channels(1) \
+    #     .delay(random_delay_seconds) \
     #     .additive_noise(noise_generator, snr=50)
 
     runner = ChainRunner(combination)

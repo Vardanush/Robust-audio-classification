@@ -112,7 +112,7 @@ class BMWDataset(Dataset):
         audio = sound[0]
         
         if self.augment:
-            audio = self.agument(audio)  
+            audio = self.augment(audio)  
         
         if self.transform:
             audio = self.transform(audio)
