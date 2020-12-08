@@ -15,7 +15,7 @@ class BMWDataset(Dataset):
     Wrapper for the BMW dataset.
     """
 
-    def __init__(self, cfg, folder_list, transform=None):
+    def __init__(self, cfg, folder_list, transform=None, augment=None):
         super().__init__()
         self.annotation_path = cfg["DATASET"]["ANNOTATION_PATH"]
         if os.path.isfile(self.annotation_path):
@@ -44,6 +44,8 @@ class BMWDataset(Dataset):
 
         self.folder_list = folder_list
         self.transform = transform
+        self.augment = augment # a Callable that applies data augmentation
+        
 
     @staticmethod
     def _find_classes(directory):
@@ -108,6 +110,10 @@ class BMWDataset(Dataset):
         sound = torchaudio.load(self.file_names[index], out=None, normalization=True)
         label = self.labels[index]
         audio = sound[0]
+        
+        if self.augment:
+            audio = self.agument(audio)  
+        
         if self.transform:
             audio = self.transform(audio)
     

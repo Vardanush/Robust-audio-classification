@@ -14,3 +14,4 @@ def log_amp_mel_spectrogram(cfg=None):
         T.MelSpectrogram(sample_rate=12000, n_fft=512, hop_length=256, n_mels=96),
         T.AmplitudeToDB()
     )
+    
