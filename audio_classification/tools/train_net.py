@@ -67,8 +67,8 @@ def get_dataloader(cfg, trial_hparams,transform=None, augment=None):
     elif cfg["DATASET"]["NAME"] == "BMW":
         sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform, augment=augment)
-        val_set = BMWDataset(cfg, val_folds, transform=transform, augment=augment)
-        test_set = BMWDataset(cfg, [11], transform=transform, augment=augment)
+        val_set = BMWDataset(cfg, val_folds, transform=transform)
+        test_set = BMWDataset(cfg, [11], transform=transform)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
