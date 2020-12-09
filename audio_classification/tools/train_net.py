@@ -7,6 +7,7 @@ import torchaudio
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler import AdvancedProfiler
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
 from audio_classification.model import LitCRNN
@@ -50,6 +51,12 @@ def get_transform(cfg):
 def get_augment(cfg):
     if cfg['DATASET']['AUGMENTATION'] == 'random':
         augment = random_augment(cfg=cfg)
+    elif cfg['DATASET']['AUGMENTATION'] == 'uniform':
+        augment = uniform_augment(cfg=cfg)
+    elif cfg['DATASET']['AUGMENTATION'] == 'gaussian':
+        augment = gaussian_augment(cfg=cfg)
+    elif cfg['DATASET']['AUGMENTATION'] == 'noise':
+        augment = noise_augment(cfg=cfg)
     else: 
         augment = None
     return augment
@@ -110,7 +117,9 @@ def do_train(cfg):
     
     trial_hparams = None # no hyperparameter tuning here
 
-    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=get_transform(cfg), augment=get_augment(cfg))
+    transform = get_transform(cfg)
+    augment = get_augment(cfg)
+    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=transform, augment=augment)
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
@@ -123,12 +132,14 @@ def do_train(cfg):
     )
 
     model = get_model(cfg, class_weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
+    profiler = AdvancedProfiler(output_filename='profile.txt')
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],
                          progress_bar_refresh_rate=10,
                          callbacks=[checkpoint_callback],
-                         logger=tb_logger)
+                         logger=tb_logger,
+                         profiler=profiler)
 
     trainer.fit(model, train_loader, val_loader)
 
