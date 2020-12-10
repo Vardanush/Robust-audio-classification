@@ -12,7 +12,7 @@ from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
 from audio_classification.model import LitCRNN
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
-from audio_classification.utils import audio_transform, random_augment
+from audio_classification.utils import audio_transform
 from audio_classification.utils import class_weighting
 from argparse import ArgumentParser
 
@@ -48,18 +48,6 @@ def get_transform(cfg):
         transform = None
     return transform
 
-def get_augment(cfg):
-    if cfg['DATASET']['AUGMENTATION'] == 'random':
-        augment = random_augment(cfg=cfg)
-    elif cfg['DATASET']['AUGMENTATION'] == 'uniform':
-        augment = uniform_augment(cfg=cfg)
-    elif cfg['DATASET']['AUGMENTATION'] == 'gaussian':
-        augment = gaussian_augment(cfg=cfg)
-    elif cfg['DATASET']['AUGMENTATION'] == 'noise':
-        augment = noise_augment(cfg=cfg)
-    else: 
-        augment = None
-    return augment
 
 def get_dataloader(cfg, trial_hparams,transform=None, augment=None):
     folds = list(range(1, 11))
@@ -118,7 +106,7 @@ def do_train(cfg):
     trial_hparams = None # no hyperparameter tuning here
 
     transform = get_transform(cfg)
-    augment = get_augment(cfg)
+    augment = cfg['DATASET']['AUGMENTATION']
     train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=transform, augment=augment)
     if class_weights is not None:
         class_weights = torch.tensor(class_weights).to(device=device)

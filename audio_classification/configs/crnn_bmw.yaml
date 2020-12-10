@@ -9,11 +9,12 @@ DATASET:
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
   WEIGHT: "None" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 1
-  AUGMENTATION: "None" #'random'
+  AUGMENTATION: "none" #'random'
+  NOISE_PATH: '../datasets/MUSAN/free-sound/'
 DATALOADER:
-  BATCH_SIZE: 8 #8
+  BATCH_SIZE: 4 #8
   NUM_WORKERS: 20
-LOSS: 'label_smoothing_cross_entropy'
+LOSS: 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
