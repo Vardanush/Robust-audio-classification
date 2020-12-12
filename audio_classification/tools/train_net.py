@@ -9,7 +9,7 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
-from audio_classification.model import LitCRNN
+from audio_classification.model import LitCRNN, SmoothClassifier
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
 from audio_classification.utils import class_weighting
@@ -90,6 +90,7 @@ def get_dataloader(cfg, trial_hparams=None,transform=None):
 
 
 def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
+    
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     elif cfg["MODEL"]["NAME"] == "LitM18":
@@ -98,6 +99,10 @@ def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
         model = lit_m11(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+    
+    if cfg["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        model = SmoothClassifier(cfg = cfg, class_weights=weights, base_classifier=model, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
+        
     return model
 
 
@@ -117,11 +122,12 @@ def do_train(cfg):
     )
     
     if class_weights is not None:
-        class_weights = torch.tensor(class_weights).to(device=device)
+        class_weights = torch.tensor(class_weights).to(device=device).double()
         
     trial_hparams = None
-        
+    
     model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
+        
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],
                          max_epochs=cfg["SOLVER"]["MAX_EPOCH"],

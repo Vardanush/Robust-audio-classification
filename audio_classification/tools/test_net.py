@@ -7,29 +7,54 @@ import yaml
 import warnings
 
 def get_model(cfg, checkpoint_path, class_weights, map_location):
-    if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN.load_from_checkpoint(
-                            checkpoint_path=checkpoint_path,
-                            cfg=cfg,
-                            map_location=map_location, 
-                            class_weights=torch.tensor(class_weights).to(device='cuda')
-                        )
-    elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18.load_from_checkpoint(
-                            checkpoint_path=checkpoint_path,
-                            cfg=cfg,
-                            map_location=map_location, 
-                            class_weights=torch.tensor(class_weights).to(device='cuda')
-                        )
-    elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11.load_from_checkpoint(
-                            checkpoint_path=checkpoint_path,
-                            cfg=cfg,
-                            map_location=map_location, 
-                            class_weights=torch.tensor(class_weights).to(device='cuda')
-                        )
+    if class_weights is not None:
+        if cfg["MODEL"]["NAME"] == "LitCRNN":
+            model = LitCRNN.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=torch.tensor(class_weights).to(device='cuda')
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            model = lit_m18.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=torch.tensor(class_weights).to(device='cuda')
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            model = lit_m11.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=torch.tensor(class_weights).to(device='cuda')
+                            )
+        else:
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     else:
-        raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+        if cfg["MODEL"]["NAME"] == "LitCRNN":
+            model = LitCRNN.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=None
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            model = lit_m18.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=None
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            model = lit_m11.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=None
+                            )
+        else:
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
     return model
 
 def do_test(configs, checkpoint_path):

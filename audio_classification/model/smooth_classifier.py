@@ -2,21 +2,50 @@ from abc import ABC
 
 import torch
 import torch.nn.functional as F
+from scipy.stats import norm, binom_test
+from torch import nn
 import torch.optim as optim
+from statsmodels.stats.proportion import proportion_confint
+from math import ceil
+from typing import Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.metrics import Precision, Recall
 from sklearn.metrics import classification_report, confusion_matrix
 
+from .classifier import Classifier
+
 __all__ = ['SmoothClassifier']
 
-class SmoothClassifier(pl.LightningModule, ABC):
+def lower_confidence_bound(num_class_A: int, num_samples: int, alpha: float) -> float:
+    """
+    Computes a lower bound on the probability of the event occuring in a Bernoulli distribution.
+    Parameters
+    ----------
+    num_class_A: int
+        The number of times the event occured in the samples.
+    num_samples: int
+        The total number of samples from the bernoulli distribution.
+    alpha: float
+        The desired confidence level, e.g. 0.05.
+
+    Returns
+    -------
+    lower_bound: float
+        The lower bound on the probability of the event occuring in a Bernoulli distribution.
+
+    """
+    return proportion_confint(num_class_A, num_samples, alpha=2 * alpha, method="beta")[0]
+
+class SmoothClassifier(Classifier, ABC):
     """
     Randomized smoothing classifier.
     """
-
-    def __init__(self, base_classifier: pl.LightningModule, num_classes: int, sigma: float):
+    # to abstain, Smooth returns this int
+    ABSTAIN = -1
+    
+    def __init__(self, cfg, class_weights, base_classifier: Classifier, trial_hparams = None, train_loader = None, val_loader = None):
         """
         Constructor for SmoothClassifier.
         Parameters
@@ -28,12 +57,20 @@ class SmoothClassifier(pl.LightningModule, ABC):
         sigma: float
             The variance used for the Gaussian perturbations.
         """
-        super(SmoothClassifier, self).__init__()
+        super(SmoothClassifier, self).__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"], trial_hparams, train_loader, val_loader)
+        
+        self.save_hyperparameters(cfg)
+        self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
+        self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
+        self.step_size = cfg["SOLVER"]["STEP_SIZE"]
+        self.gamma = cfg["SOLVER"]["GAMMA"]
+        self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
+        
         self.base_classifier = base_classifier
-        self.num_classes = num_classes
-        self.sigma = sigma
+        self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
+        self.sigma = cfg["SOLVER"]["SIGMA"]
 
-    def forward(self, x):
+    def forward(self, x, seq_len):
         """
         Make a single prediction for the input batch using the base classifier and random Gaussian noise.
 
@@ -41,14 +78,72 @@ class SmoothClassifier(pl.LightningModule, ABC):
         Parameters
         ----------
         inputs
+        
         Returns
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        noise = torch.randn_like(inputs) * self.sigma
-        return self.base_classifier((inputs + noise).clamp(0, 1))
+        
+        noise = torch.randn_like(x, dtype=float) * torch.tensor(self.sigma).cuda()
+        x = x + noise
+        print("x type", x.dtype)
+        return self.base_classifier(x, seq_len)  #.clamp(0, 1)) todo: need to clamp?
+                              
+    def training_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
 
-    def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int) -> Tuple[int, float]:
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
+        
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
+
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
+
+        preds = torch.argmax(out, dim=1)
+        acc = accuracy(preds, y)
+        
+        precision = self.val_precision(preds, y)
+        recall = self.val_recall(preds, y)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True)
+        self.log('val_acc', acc, on_epoch=True, prog_bar=True)
+        self.log('val_precision', precision, prog_bar=True)
+        self.log('val_recall', recall, prog_bar=True)
+        
+        return loss, y, preds
+    
+    def test_step(self, batch, batch_idx):
+        x, y, original_lengths = batch
+        out = self(x, original_lengths)
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
+
+        preds = torch.argmax(out, dim=1)
+        acc = accuracy(preds, y)
+        
+        precision = self.test_precision(preds, y)
+        recall = self.test_recall(preds, y)
+        self.log('test_loss', loss, prog_bar=True)
+        self.log('test_acc', acc, prog_bar=True)
+        self.log('test_precision', precision, prog_bar=True)
+        self.log('test_recall', recall, prog_bar=True)
+        
+        return loss, y, preds
+
+
+    def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int):
         """
         Certify the input sample using randomized smoothing.
 
@@ -56,8 +151,8 @@ class SmoothClassifier(pl.LightningModule, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N is the image width/height.
-            The input image to certify.
+        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+            The input audio to certify.
         n0: int
             Number of samples to determine the most likely class.
         num_samples: int
@@ -84,6 +179,7 @@ class SmoothClassifier(pl.LightningModule, ABC):
         counts_estimation = self._sample_noise_predictions(inputs, num_samples, batch_size)
         num_top_class = counts_estimation[top_class].item()
         p_A_lower_bound = lower_confidence_bound(num_top_class, num_samples, alpha)
+                                    
         if p_A_lower_bound < 0.5:
             return SmoothClassifier.ABSTAIN, 0.0
         else:
@@ -99,15 +195,15 @@ class SmoothClassifier(pl.LightningModule, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N is the image width/height.
-            The input image to predict.
+        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+            The input audio to certify.
         num_samples: int
             The number of samples to draw in order to determine the most likely class.
         alpha: float
             The desired confidence level that the top class is indeed the most likely class. E.g. alpha=0.05 means that
             the expected error rate must not be larger than 5%.
         batch_size: int
-            The batch si ze to use during the prediction, i.e. how many noise samples to classify in parallel.
+            The batch size to use during the prediction, i.e. how many noise samples to classify in parallel.
 
         Returns
         -------
@@ -133,8 +229,8 @@ class SmoothClassifier(pl.LightningModule, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N is the image width/height.
-            The input image to predict.
+        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+            The input audio to certify.
         num_samples: int
             The number of samples to draw.
         batch_size: int
@@ -156,7 +252,7 @@ class SmoothClassifier(pl.LightningModule, ABC):
                 batch = inputs.repeat((this_batch_size, 1, 1, 1))
                 random_noise = torch.randn_like(batch) * self.sigma
 
-                predictions = self.base_classifier((batch + random_noise).clamp(0, 1))
+                predictions = self.base_classifier((batch + random_noise)) #.clamp(0, 1))
 
                 class_counts += (predictions.argmax(-1, keepdim=True) == classes).long().sum(0)
         return class_counts

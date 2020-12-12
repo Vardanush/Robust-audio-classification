@@ -2,27 +2,29 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 10
   CRNN:
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
 DATASET:
   NAME: "UrbanSounds8K"
-  ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
-  FILE_PATH: '../datasets/UrbanSound8K/audio/'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
+  FILE_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
   VAL_FOLD: 10
   WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 12
+  BATCH_SIZE: 1
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/week-6/randomised-smoothing'
   NUM_GPUS: 1
   MAX_EPOCH: 30
   MIN_EPOCH: 10
   LEARNING_RATE: 0.01
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 7
+  SIGMA: 1
   GAMMA: 0.1
 CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
-  SAVE_PATH: '../weights'
+  SAVE_PATH: '../weights/week-6/randomised-smoothing'
   SAVE_TOP_K: 1
 

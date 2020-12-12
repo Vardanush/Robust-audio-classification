@@ -2,27 +2,29 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/trimmed/bmw.csv'
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim'
-  WEIGHT: "NORMAL" #"SQUARED" #"None"
-  VAL_FOLD: 10
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #trimmed/
+  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise' #_Jan20_trim
+  WEIGHT: "NORMAL" #"None"
+  VAL_FOLD: 2
 DATALOADER:
   BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/week-5'
+  LOG_PATH: '../logs/week-6/randomised-smoothing'
   NUM_GPUS: 1
-  MAX_EPOCH: 5
-  MIN_EPOCH: 1
+  MAX_EPOCH: 100
+  MIN_EPOCH: 10
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 20
+  SIGMA: 1
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights/week-5'
+  SAVE_PATH: '../weights/week-6/randomised-smoothing'
   SAVE_TOP_K: 1
 
