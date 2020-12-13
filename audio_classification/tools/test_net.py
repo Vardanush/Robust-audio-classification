@@ -85,12 +85,10 @@ def evaluate_robustness_smoothing(model, test_loader,
     Evaluate the robustness of a smooth classifier based on the input base classifier via randomized smoothing.
     Parameters
     ----------
-    base_classifier: nn.Module
+    base_classifier: Classifier
         The input base classifier to use in the randomized smoothing process.
-    sigma: float
-        The variance to use for the Gaussian noise samples.
-    dataset: Dataset
-        The input dataset to predict on.
+    test_dataloader: Dataloader
+        The data used for evaluation
     num_samples_1: int
         The number of samples used to determine the most likely class.
     num_samples_2: int
@@ -100,8 +98,6 @@ def evaluate_robustness_smoothing(model, test_loader,
         the expected error rate must not be larger than 5%.
     certification_batch_size: int
         The batch size to use during the certification, i.e. how many noise samples to classify in parallel.
-    num_classes: int
-        The number of classes.
 
     Returns
     -------
@@ -151,7 +147,7 @@ def do_test(configs, checkpoint_path):
     model = get_model(configs, checkpoint_path, class_weights, map_location)
     
     if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
-        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(5e3))
+        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e3), num_samples_2=int(1e4), alpha=0.05, certification_batch_size=int(50))
         print(result)
         
     else:

@@ -31,3 +31,6 @@ wheels/
 !/datasets/*.*
 /weights
 /logs
+
+#logs 
+notebooks/lightning_logs/

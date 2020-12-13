@@ -77,7 +77,6 @@ class SmoothClassifier(Classifier, ABC):
         """
         Make a single prediction for the input batch using the base classifier and random Gaussian noise.
 
-        Note: this function clamps the distorted samples in the valid range, i.e. [0,1].
         Parameters
         ----------
         inputs
@@ -86,8 +85,14 @@ class SmoothClassifier(Classifier, ABC):
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        noise = torch.randn_like(x, dtype=torch.float32) * torch.tensor(self.sigma).cuda()
-        return self.base_classifier(x + noise, seq_len)  #.clamp(0, 1) todo: discuss this?
+        noise = torch.zeros(x.shape).cuda()
+
+        # makes sure that the padded 0s remain unchanged
+        for i in range(x.shape[0]):
+            temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda()
+            noise[i][:seq_len.data[i]] = temp_noise
+            
+        return self.base_classifier(x + noise, seq_len) 
     
     """
     Added from CRNN
@@ -233,8 +238,6 @@ class SmoothClassifier(Classifier, ABC):
         """
         Sample random noise perturbations for the input sample and count the predicted classes of the base classifier.
 
-        Note: this function clamps the distorted samples in the valid range, i.e. [0,1].
-
         Parameters
         ----------
         inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N x N is the audio dim.
@@ -260,12 +263,10 @@ class SmoothClassifier(Classifier, ABC):
                 this_batch_size = min(num_remaining, batch_size)
 
                 batch = inputs.repeat((this_batch_size, 1, 1, 1))
-                random_noise = torch.randn_like(batch) * torch.tensor(self.sigma).cuda()
+                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda()
                 seq_lens = seq_len.repeat(this_batch_size)
                 
-                predictions = self.base_classifier((batch + random_noise), seq_lens) #.clamp(0, 1)
-
-                print("predictions from _sample_noise_predictions",predictions)
+                predictions = self.base_classifier((batch + random_noise), seq_lens)
                 class_counts += (predictions.argmax(-1, keepdim=True) == classes).long().sum(0)
                 
         return class_counts
