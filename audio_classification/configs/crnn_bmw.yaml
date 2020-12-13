@@ -16,7 +16,7 @@ DATALOADER:
 SOLVER:
   LOG_PATH: '../logs/week-6/randomised-smoothing'
   NUM_GPUS: 1
-  MAX_EPOCH: 100
+  MAX_EPOCH: 150
   MIN_EPOCH: 10
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001

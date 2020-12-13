@@ -1,61 +1,142 @@
 import torch
 from audio_classification.tools import get_dataloader, get_transform
-from audio_classification.model import lit_m11, lit_m18, LitCRNN
+from audio_classification.model import lit_m11, lit_m18, LitCRNN, SmoothClassifier
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 import yaml
 import warnings
+from typing import Dict
+from tqdm.autonotebook import tqdm
 
 def get_model(cfg, checkpoint_path, class_weights, map_location):
-    if class_weights is not None:
+    weights  = torch.tensor(class_weights).to(device='cuda')
+    
+    if cfg["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        
         if cfg["MODEL"]["NAME"] == "LitCRNN":
-            model = LitCRNN.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=torch.tensor(class_weights).to(device='cuda')
-                            )
+            base_classifier = LitCRNN(cfg=cfg, class_weights=weights)
         elif cfg["MODEL"]["NAME"] == "LitM18":
-            model = lit_m18.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=torch.tensor(class_weights).to(device='cuda')
-                            )
+            base_classifier = lit_m18(cfg, weights)
         elif cfg["MODEL"]["NAME"] == "LitM11":
-            model = lit_m11.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=torch.tensor(class_weights).to(device='cuda')
-                            )
+            base_classifier = lit_m11(cfg, weights)
         else:
             raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+        
+
+        model = SmoothClassifier.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, map_location=map_location, class_weights=weights, base_classifier = base_classifier.to(device='cuda'))
+                            
     else:
-        if cfg["MODEL"]["NAME"] == "LitCRNN":
-            model = LitCRNN.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=None
-                            )
-        elif cfg["MODEL"]["NAME"] == "LitM18":
-            model = lit_m18.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=None
-                            )
-        elif cfg["MODEL"]["NAME"] == "LitM11":
-            model = lit_m11.load_from_checkpoint(
-                                checkpoint_path=checkpoint_path,
-                                cfg=cfg,
-                                map_location=map_location, 
-                                class_weights=None
-                            )
+        
+        if class_weights is not None:
+            if cfg["MODEL"]["NAME"] == "LitCRNN":
+                model = LitCRNN.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=weights
+                                )
+            elif cfg["MODEL"]["NAME"] == "LitM18":
+                model = lit_m18.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=weights
+                                )
+            elif cfg["MODEL"]["NAME"] == "LitM11":
+                model = lit_m11.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=weights
+                                )
+            else:
+                raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
         else:
-            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+            if cfg["MODEL"]["NAME"] == "LitCRNN":
+                model = LitCRNN.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=None
+                                )
+            elif cfg["MODEL"]["NAME"] == "LitM18":
+                model = lit_m18.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=None
+                                )
+            elif cfg["MODEL"]["NAME"] == "LitM11":
+                model = lit_m11.load_from_checkpoint(
+                                    checkpoint_path=checkpoint_path,
+                                    cfg=cfg,
+                                    map_location=map_location, 
+                                    class_weights=None
+                                )
+            else:
+                raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+        
     return model
+
+def evaluate_robustness_smoothing(model, test_loader,
+                                  num_samples_1: int = 1000, num_samples_2: int = 10000,
+                                  alpha: float = 0.05, certification_batch_size: float = 5000) -> Dict:
+    """
+    Evaluate the robustness of a smooth classifier based on the input base classifier via randomized smoothing.
+    Parameters
+    ----------
+    base_classifier: nn.Module
+        The input base classifier to use in the randomized smoothing process.
+    sigma: float
+        The variance to use for the Gaussian noise samples.
+    dataset: Dataset
+        The input dataset to predict on.
+    num_samples_1: int
+        The number of samples used to determine the most likely class.
+    num_samples_2: int
+        The number of samples used to perform the certification.
+    alpha: float
+        The desired confidence level that the top class is indeed the most likely class. E.g. alpha=0.05 means that
+        the expected error rate must not be larger than 5%.
+    certification_batch_size: int
+        The batch size to use during the certification, i.e. how many noise samples to classify in parallel.
+    num_classes: int
+        The number of classes.
+
+    Returns
+    -------
+    Dict containing the following keys:
+        * abstains: int. The number of times the smooth classifier abstained, i.e. could not certify the input sample to
+                    the desired confidence level.
+        * false_predictions: int. The number of times the prediction could be certified but was not correct.
+        * correct_certified: int. The number of times the prediction could be certified and was correct.
+        * avg_radius: float. The average radius for which the predictions could be certified.
+
+    """
+    abstains = 0
+    false_predictions = 0
+    correct_certified = 0
+    radii = []
+    
+    for batch in tqdm(test_loader):
+        x, y, seq_len = batch # Here batch size = 1 
+        x = x.cuda()
+        pred_class, radius = model.certify(x, num_samples_1, num_samples_2, alpha=alpha,
+                                           batch_size=certification_batch_size, seq_len=seq_len)
+        if pred_class == y:
+            correct_certified += 1
+            radii.append(radius)
+        elif pred_class == SmoothClassifier.ABSTAIN:
+            abstains += 1
+            radii.append(0.)
+        elif pred_class != y:
+            false_predictions += 1
+            radii.append(0.)
+
+    avg_radius = torch.tensor(radii).mean().item()
+    return dict(abstains=abstains, false_predictions=false_predictions, correct_certified=correct_certified,
+                avg_radius=avg_radius)
+
 
 def do_test(configs, checkpoint_path):
 
@@ -69,8 +150,14 @@ def do_test(configs, checkpoint_path):
 
     model = get_model(configs, checkpoint_path, class_weights, map_location)
     
-    trainer = pl.Trainer(gpus=configs["SOLVER"]["NUM_GPUS"])
-    trainer.test(model, test_dataloaders=test_loader)
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(5e3))
+        print(result)
+        
+    else:
+        
+        trainer = pl.Trainer(gpus=configs["SOLVER"]["NUM_GPUS"])
+        trainer.test(model, test_dataloaders=test_loader)
     
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')

@@ -11,7 +11,7 @@ DATASET:
   VAL_FOLD: 10
   WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 1
+  BATCH_SIZE: 12
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/week-6/randomised-smoothing'

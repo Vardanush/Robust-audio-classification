@@ -122,7 +122,7 @@ def do_train(cfg):
     )
     
     if class_weights is not None:
-        class_weights = torch.tensor(class_weights).to(device=device).double()
+        class_weights = torch.tensor(class_weights).to(device=device)
         
     trial_hparams = None
     

@@ -1,3 +1,6 @@
+"""
+Adapted from project 2, course: machine learning for graphs and sequential data
+"""
 from abc import ABC
 
 import torch
@@ -83,14 +86,15 @@ class SmoothClassifier(Classifier, ABC):
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        
-        noise = torch.randn_like(x, dtype=float) * torch.tensor(self.sigma).cuda()
-        x = x + noise
-        print("x type", x.dtype)
-        return self.base_classifier(x, seq_len)  #.clamp(0, 1)) todo: need to clamp?
-                              
+        noise = torch.randn_like(x, dtype=torch.float32) * torch.tensor(self.sigma).cuda()
+        return self.base_classifier(x + noise, seq_len)  #.clamp(0, 1) todo: discuss this?
+    
+    """
+    Added from CRNN
+    """
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
+        
         out = self(x, original_lengths)
 
         if self.class_weights is not None:
@@ -143,7 +147,7 @@ class SmoothClassifier(Classifier, ABC):
         return loss, y, preds
 
 
-    def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int):
+    def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int, seq_len:int):
         """
         Certify the input sample using randomized smoothing.
 
@@ -151,7 +155,7 @@ class SmoothClassifier(Classifier, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N x N is the audio dim.
             The input audio to certify.
         n0: int
             Number of samples to determine the most likely class.
@@ -161,6 +165,8 @@ class SmoothClassifier(Classifier, ABC):
             The confidence level, e.g. 0.05 for an expected error rate of 5%.
         batch_size: int
            The batch size to use during the certification, i.e. how many noise samples to classify in parallel.
+        seq_len: int
+            Length of the audio sequence
 
         Returns
         -------
@@ -173,10 +179,10 @@ class SmoothClassifier(Classifier, ABC):
         """
         self.base_classifier.eval()
 
-        class_counts_selection = self._sample_noise_predictions(inputs, n0, batch_size)
+        class_counts_selection = self._sample_noise_predictions(inputs, n0, batch_size, seq_len)
         top_class = class_counts_selection.argmax().item()
 
-        counts_estimation = self._sample_noise_predictions(inputs, num_samples, batch_size)
+        counts_estimation = self._sample_noise_predictions(inputs, num_samples, batch_size, seq_len)
         num_top_class = counts_estimation[top_class].item()
         p_A_lower_bound = lower_confidence_bound(num_top_class, num_samples, alpha)
                                     
@@ -186,7 +192,7 @@ class SmoothClassifier(Classifier, ABC):
             radius = self.sigma * norm.ppf(p_A_lower_bound)
             return top_class, radius
 
-    def predict(self, inputs: torch.tensor, num_samples: int, alpha: float, batch_size: int) -> int:
+    def predict(self, inputs: torch.tensor, num_samples: int, alpha: float, batch_size: int, seq_len: int) -> int:
         """
         Predict a label for the input sample via the smooth classifier g(x).
 
@@ -195,7 +201,7 @@ class SmoothClassifier(Classifier, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N x N is the audio dim.
             The input audio to certify.
         num_samples: int
             The number of samples to draw in order to determine the most likely class.
@@ -204,13 +210,15 @@ class SmoothClassifier(Classifier, ABC):
             the expected error rate must not be larger than 5%.
         batch_size: int
             The batch size to use during the prediction, i.e. how many noise samples to classify in parallel.
+        seq_len: int
+            Length of the audio sequence
 
         Returns
         -------
         int: the winning class or -1 in case the desired confidence level could not be reached.
         """
         self.base_classifier.eval()
-        class_counts = self._sample_noise_predictions(inputs, num_samples, batch_size).cpu()
+        class_counts = self._sample_noise_predictions(inputs, num_samples, batch_size, seq_len).cpu()
         top_2_classes = class_counts.argsort()[-2:]
 
         count1 = class_counts[top_2_classes[0]]
@@ -221,7 +229,7 @@ class SmoothClassifier(Classifier, ABC):
         else:
             return top_2_classes[0]
 
-    def _sample_noise_predictions(self, inputs: torch.tensor, num_samples: int, batch_size: int) -> torch.Tensor:
+    def _sample_noise_predictions(self, inputs: torch.tensor, num_samples: int, batch_size: int, seq_len:int) -> torch.Tensor:
         """
         Sample random noise perturbations for the input sample and count the predicted classes of the base classifier.
 
@@ -229,12 +237,14 @@ class SmoothClassifier(Classifier, ABC):
 
         Parameters
         ----------
-        inputs: torch.Tensor of shape [1, C, N], where C is the number of channels and N is the audiio length.
+        inputs: torch.Tensor of shape [1, C, N, N], where C is the number of channels and N x N is the audio dim.
             The input audio to certify.
         num_samples: int
             The number of samples to draw.
         batch_size: int
             The batch size to use during the prediction, i.e. how many noise samples to classify in parallel.
+        seq_len: int
+            Length of the audio sequence
 
         Returns
         -------
@@ -244,16 +254,19 @@ class SmoothClassifier(Classifier, ABC):
         """
         num_remaining = num_samples
         with torch.no_grad():
-            classes = torch.arange(self.num_classes).to(self.device())
-            class_counts = torch.zeros([self.num_classes], dtype=torch.long, device=self.device())
+            classes = torch.arange(self.num_classes).cuda()
+            class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
 
                 batch = inputs.repeat((this_batch_size, 1, 1, 1))
-                random_noise = torch.randn_like(batch) * self.sigma
+                random_noise = torch.randn_like(batch) * torch.tensor(self.sigma).cuda()
+                seq_lens = seq_len.repeat(this_batch_size)
+                
+                predictions = self.base_classifier((batch + random_noise), seq_lens) #.clamp(0, 1)
 
-                predictions = self.base_classifier((batch + random_noise)) #.clamp(0, 1))
-
+                print("predictions from _sample_noise_predictions",predictions)
                 class_counts += (predictions.argmax(-1, keepdim=True) == classes).long().sum(0)
+                
         return class_counts
 
