@@ -30,7 +30,6 @@ wheels/
 /datasets/*
 !/datasets/*.*
 /weights
-/logs
 
 #logs 
 notebooks/lightning_logs/

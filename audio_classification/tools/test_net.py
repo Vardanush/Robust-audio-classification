@@ -9,7 +9,11 @@ from typing import Dict
 from tqdm.autonotebook import tqdm
 
 def get_model(cfg, checkpoint_path, class_weights, map_location):
-    weights  = torch.tensor(class_weights).to(device='cuda')
+    
+    if class_weights is not None:
+        weights  = torch.tensor(class_weights).to(device='cuda')
+    else:
+        weights = None
     
     if cfg["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
         
@@ -25,56 +29,31 @@ def get_model(cfg, checkpoint_path, class_weights, map_location):
 
         model = SmoothClassifier.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, map_location=map_location, class_weights=weights, base_classifier = base_classifier.to(device='cuda'))
                             
-    else:
-        
-        if class_weights is not None:
-            if cfg["MODEL"]["NAME"] == "LitCRNN":
-                model = LitCRNN.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=weights
-                                )
-            elif cfg["MODEL"]["NAME"] == "LitM18":
-                model = lit_m18.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=weights
-                                )
-            elif cfg["MODEL"]["NAME"] == "LitM11":
-                model = lit_m11.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=weights
-                                )
-            else:
-                raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+    else: 
+       
+        if cfg["MODEL"]["NAME"] == "LitCRNN":
+            model = LitCRNN.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=weights
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            model = lit_m18.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=weights
+                            )
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            model = lit_m11.load_from_checkpoint(
+                                checkpoint_path=checkpoint_path,
+                                cfg=cfg,
+                                map_location=map_location, 
+                                class_weights=weights
+                            )
         else:
-            if cfg["MODEL"]["NAME"] == "LitCRNN":
-                model = LitCRNN.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=None
-                                )
-            elif cfg["MODEL"]["NAME"] == "LitM18":
-                model = lit_m18.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=None
-                                )
-            elif cfg["MODEL"]["NAME"] == "LitM11":
-                model = lit_m11.load_from_checkpoint(
-                                    checkpoint_path=checkpoint_path,
-                                    cfg=cfg,
-                                    map_location=map_location, 
-                                    class_weights=None
-                                )
-            else:
-                raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
         
     return model
 
@@ -115,7 +94,7 @@ def evaluate_robustness_smoothing(model, test_loader,
     radii = []
     
     for batch in tqdm(test_loader):
-        x, y, seq_len = batch # Here batch size = 1 
+        x, y, seq_len = batch # Here batch size is 1 
         x = x.cuda()
         pred_class, radius = model.certify(x, num_samples_1, num_samples_2, alpha=alpha,
                                            batch_size=certification_batch_size, seq_len=seq_len)
@@ -147,7 +126,7 @@ def do_test(configs, checkpoint_path):
     model = get_model(configs, checkpoint_path, class_weights, map_location)
     
     if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
-        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e3), num_samples_2=int(1e4), alpha=0.05, certification_batch_size=int(50))
+        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(60), num_samples_2=int(60), alpha=0.05, certification_batch_size=int(10))
         print(result)
         
     else:

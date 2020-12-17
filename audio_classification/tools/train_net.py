@@ -50,18 +50,21 @@ def get_transform(cfg):
 def get_dataloader(cfg, trial_hparams=None,transform=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-    train_folds = [fold for fold in folds if fold not in val_folds]
+    test_folds = [11] # Change to test fold 1 for urban sound 8k
+    train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
 
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
         sets = UrbanSoundDataset(cfg, folds, transform=transform)
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
+        test_set = UrbanSoundDataset(cfg, test_folds, transform=transform)
+        
     elif cfg["DATASET"]["NAME"] == "BMW":
         sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform)
         val_set = BMWDataset(cfg, val_folds, transform=transform)
-        test_set = BMWDataset(cfg, [11], transform=transform)
+        test_set = BMWDataset(cfg, test_folds, transform=transform)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
@@ -78,12 +81,10 @@ def get_dataloader(cfg, trial_hparams=None,transform=None):
     val_loader = DataLoader(val_set, batch_size=batch_size,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-    if cfg["DATASET"]["NAME"] == "BMW":
-        test_loader = DataLoader(test_set, batch_size=cfg["DATALOADER"]["BATCH_SIZE"],
+    test_loader = DataLoader(test_set, batch_size=batch_size,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-    else:
-        test_loader = None
+   
 
     class_weights = class_weighting.calc_weights(sets, cfg)
     return train_loader, val_loader, test_loader, class_weights

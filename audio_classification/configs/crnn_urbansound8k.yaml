@@ -8,15 +8,15 @@ DATASET:
   NAME: "UrbanSounds8K"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
-  VAL_FOLD: 10
-  WEIGHT: "NORMAL" #"SQUARED"
+  VAL_FOLD: 9
+  WEIGHT: "None" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 12
+  BATCH_SIZE: 1
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/week-6/randomised-smoothing'
   NUM_GPUS: 1
-  MAX_EPOCH: 30
+  MAX_EPOCH: 50
   MIN_EPOCH: 10
   LEARNING_RATE: 0.01
   WEIGHT_DECAY: 0.001
