@@ -1,10 +1,12 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from pytorch_lightning.metrics.functional import accuracy
-from .classifier import Classifier
 from pytorch_lightning.metrics import Precision, Recall
+from .classifier import Classifier
 
 __all__ = ["LitCRNN"]
 
@@ -15,14 +17,19 @@ class LitCRNN(Classifier):
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
-    def __init__(self, cfg, class_weights, trial_hparams = None, train_loader = None, val_loader = None):
+    def __init__(self, cfg, class_weights=None, trial_hparams = None, train_loader = None, val_loader = None):
         super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"], trial_hparams, train_loader, val_loader)
         self.save_hyperparameters(cfg)
+
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
+        self.alpha = cfg["SOLVER"]["ALPHA"]
+        
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
+        self.mixup = cfg["MODEL"]["CRNN"]["MIXUP"]
+        
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -77,11 +84,15 @@ class LitCRNN(Classifier):
     
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        out = self(x, original_lengths)
-
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        if self.mixup:
+            x, y_a, y_b, lam = self.mixup_data(x, y)
+            x, y_a, y_b = map(Variable, (x, y_a, y_b))
+            
+            out = self(x, original_lengths)
+            loss = self.mixup_criterion(out, y_a, y_b, lam)
+           
         else:
+            out = self(x, original_lengths)
             loss = F.cross_entropy(out, y)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -90,27 +101,34 @@ class LitCRNN(Classifier):
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        if self.mixup:
+            x, y_a, y_b, lam = self.mixup_data(x, y)
+            x, y_a, y_b = Variable(x), Variable(y_a), Variable(y_b)
+            
+            out = self(x, original_lengths)
+            loss = self.mixup_criterion(out, y_a, y_b, lam)
+            
+            preds = torch.argmax(out, dim=1)
+            acc = self.mixup_accuracy(preds, y_a, y_b, lam)
         else:
             loss = F.cross_entropy(out, y)
+            preds = torch.argmax(out, dim=1)
+            acc = accuracy(preds, y)
+            
+            precision = self.val_precision(preds, y)
+            recall = self.val_recall(preds, y)
+            self.log('val_precision', precision, prog_bar=True)
+            self.log('val_recall', recall, prog_bar=True)
 
-        preds = torch.argmax(out, dim=1)
-        acc = accuracy(preds, y)
-        
-        precision = self.val_precision(preds, y)
-        recall = self.val_recall(preds, y)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True)
         self.log('val_acc', acc, on_epoch=True, prog_bar=True)
-        self.log('val_precision', precision, prog_bar=True)
-        self.log('val_recall', recall, prog_bar=True)
-        
-        return loss, y, preds
+        return loss
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
+        
         out = self(x, original_lengths)
+
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
@@ -118,13 +136,36 @@ class LitCRNN(Classifier):
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
-        
+
         precision = self.test_precision(preds, y)
         recall = self.test_recall(preds, y)
         self.log('test_loss', loss, prog_bar=True)
         self.log('test_acc', acc, prog_bar=True)
         self.log('test_precision', precision, prog_bar=True)
         self.log('test_recall', recall, prog_bar=True)
+        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_acc', acc, prog_bar=True)
+        return loss
+
+    def mixup_data(self, x, y):
+        if self.alpha > 0:
+            lam = np.random.beta(self.alpha, self.alpha)
+        else:
+            lam = 1
+
+        index = torch.randperm(x.size()[0])
+        mixed_x = lam * x + (1 - lam) * x[index, :]
+        y_a, y_b = y, y[index]
+
+        return mixed_x, y_a, y_b, lam
+    
+    def mixup_criterion(self, preds, y_a, y_b, lam):
+        if self.class_weights  is not None:
+            return lam * F.cross_entropy(preds, y_a, self.class_weights) + (1 - lam) * F.cross_entropy(preds, y_b, self.class_weights)
         
-        return loss, y, preds
+        return lam * F.cross_entropy(preds, y_a) + (1 - lam) * F.cross_entropy(preds, y_b)
+    
+    def mixup_accuracy(self, preds, y_a, y_b, lam):
+        return lam * accuracy(preds, y_a) + (1 - lam) * accuracy(preds, y_b)
+   
         
