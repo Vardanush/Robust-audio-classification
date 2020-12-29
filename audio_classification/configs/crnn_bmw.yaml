@@ -2,8 +2,9 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: True
+    RANDOMISED_SMOOTHING: False
     INCLUDE_TOP: True
+    INCLUDE_TRANSFORM: True
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
@@ -13,13 +14,15 @@ DATASET:
   AUGMENTATION: "none" #'random'
   NOISE_PATH: '../datasets/MUSAN/free-sound/'
 DATALOADER:
-  BATCH_SIZE: 4 #8
+  BATCH_SIZE: 8 #8
   NUM_WORKERS: 20
+TRANSFORM:
+  HOP_LENGTH: 256
 LOSS: 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
-  MAX_EPOCH: 125   #125
+  MAX_EPOCH: 3   #125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001

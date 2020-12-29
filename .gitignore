@@ -32,6 +32,8 @@ wheels/
 /datasets/*
 !/datasets/*.*
 /weights
+/logs
+*/profile.txt
 
 #logs 
 notebooks/lightning_logs/

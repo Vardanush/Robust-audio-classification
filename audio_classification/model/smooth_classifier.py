@@ -263,7 +263,7 @@ class SmoothClassifier(Classifier, ABC):
                 this_batch_size = min(num_remaining, batch_size)
 
                 batch = inputs.repeat((this_batch_size, 1, 1, 1))
-                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda()
+                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
                 seq_lens = seq_len.repeat(this_batch_size)
                 
                 predictions = self.base_classifier((batch + random_noise), seq_lens)

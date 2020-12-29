@@ -37,7 +37,8 @@ def collate(batch):
     return [data, target, length]
 
 def get_transform(cfg):
-    if cfg["MODEL"]["NAME"] == "LitCRNN":
+    if cfg["MODEL"]["NAME"] == "LitCRNN" and not cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]:
+        print("Transformed raw audio into melspectrogram in dataloader.")
         transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
     elif cfg["MODEL"]["NAME"] == "LitM18" or cfg["MODEL"]["NAME"] == "LitM11":
         if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
@@ -116,7 +117,7 @@ def do_train(cfg):
 
     transform = get_transform(cfg)
     augment = cfg['DATASET']['AUGMENTATION']
-    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=get_transform(cfg))
+    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=transform, augment=augment)
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
