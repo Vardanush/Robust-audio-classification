@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import AdvancedProfiler
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
-from audio_classification.model import LitCRNN
+from audio_classification.model import LitCRNN, SmoothClassifier
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
 from audio_classification.utils import class_weighting
@@ -49,21 +49,24 @@ def get_transform(cfg):
     return transform
 
 
-def get_dataloader(cfg, trial_hparams,transform=None, augment=None):
+def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-    train_folds = [fold for fold in folds if fold not in val_folds]
+    test_folds = [11] # Change to test fold 1 for urban sound 8k
+    train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
 
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
         sets = UrbanSoundDataset(cfg, folds, transform=transform)
         train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
+        test_set = UrbanSoundDataset(cfg, test_folds, transform=transform)
+
     elif cfg["DATASET"]["NAME"] == "BMW":
         sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform, augment=augment)
         val_set = BMWDataset(cfg, val_folds, transform=transform)
-        test_set = BMWDataset(cfg, [11], transform=transform)
+        test_set = BMWDataset(cfg, test_folds, transform=transform)
     else:
         raise ValueError("Unknown dataset: {}".format(cfg["DATASET"]["NAME"]))
 
@@ -80,21 +83,29 @@ def get_dataloader(cfg, trial_hparams,transform=None, augment=None):
     val_loader = DataLoader(val_set, batch_size=batch_size,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
+    test_loader = DataLoader(test_set, batch_size=batch_size,
+                                num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                pin_memory=True, collate_fn = collate_fn)
+
 
     class_weights = class_weighting.calc_weights(sets, cfg)
+    return train_loader, val_loader, test_loader, class_weights
 
-    return train_loader, val_loader, class_weights
 
+def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
 
-def get_model(cfg, weights, trial_hparams=None, train_loader=None, val_loader=None, num_classes=None):
     if cfg["MODEL"]["NAME"] == "LitCRNN":
-        model = LitCRNN(cfg, weights)
+        model = LitCRNN(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     elif cfg["MODEL"]["NAME"] == "LitM18":
-        model = lit_m18(cfg, trial_hparams, weights, train_loader, val_loader, num_classes)
+        model = lit_m18(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     elif cfg["MODEL"]["NAME"] == "LitM11":
-        model = lit_m11(cfg, trial_hparams, weights, train_loader, val_loader, num_classes)
+        model = lit_m11(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     else:
         raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+
+    if cfg["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        model = SmoothClassifier(cfg = cfg, class_weights=weights, base_classifier=model, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
+
     return model
 
 
@@ -102,14 +113,10 @@ def do_train(cfg):
     logger = logging.getLogger(__name__)
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     logger.info("Training on device {}".format(device))
-    
-    trial_hparams = None # no hyperparameter tuning here
 
     transform = get_transform(cfg)
     augment = cfg['DATASET']['AUGMENTATION']
-    train_loader, val_loader, class_weights = get_dataloader(cfg, trial_hparams, transform=transform, augment=augment)
-    if class_weights is not None:
-        class_weights = torch.tensor(class_weights).to(device=device)
+    train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=get_transform(cfg))
     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
@@ -118,8 +125,13 @@ def do_train(cfg):
         save_top_k=cfg["CHECKPOINT"]["SAVE_TOP_K"],
         mode='max'
     )
+    
+    if class_weights is not None:
+        class_weights = torch.tensor(class_weights).to(device=device)
 
-    model = get_model(cfg, class_weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader, num_classes=cfg["MODEL"]["NUM_CLASSES"])
+    trial_hparams = None
+
+    model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
     profiler = AdvancedProfiler(output_filename='profile.txt')
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],

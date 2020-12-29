@@ -18,8 +18,8 @@ class LitDeepCNN(Classifier):
     Implementation from paper https://arxiv.org/pdf/1610.00087.pdf
     """
 
-    def __init__(self, cfg, num_layers, class_weights):
-        super(LitDeepCNN, self).__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"])
+    def __init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader):
+        super(LitDeepCNN, self).__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"], trial_hparams, train_loader, val_loader)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
@@ -30,7 +30,7 @@ class LitDeepCNN(Classifier):
         modules.append(nn.Conv1d(in_channels=1, out_channels=64, kernel_size=80, stride=4, padding=39))
         modules.append(nn.BatchNorm1d(64))
         modules.append(nn.ReLU())
-        modules.append(nn.MaxPool1d(4))  # todo: padding = 1?
+        modules.append(nn.MaxPool1d(4)) 
 
         for i in range(num_layers[0]):
             modules.append(nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1))
@@ -83,11 +83,11 @@ class LitDeepCNN(Classifier):
 
 class lit_m11(LitDeepCNN):
 
-    def __init__(self, cfg, class_weights, num_layers=[2, 2, 3, 2]):
-        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
+    def __init__(self, cfg, class_weights, num_layers=[2, 2, 3, 2], trial_hparams = None, train_loader = None, val_loader = None):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader)
 
 
 class lit_m18(LitDeepCNN):
 
-    def __init__(self, cfg, class_weights, num_layers=[4, 4, 4, 4]):
-        LitDeepCNN.__init__(self, cfg, num_layers, class_weights)
+    def __init__(self, cfg, class_weights, num_layers=[4, 4, 4, 4], trial_hparams = None, train_loader = None, val_loader = None):
+        LitDeepCNN.__init__(self, cfg, num_layers, class_weights, trial_hparams, train_loader, val_loader)

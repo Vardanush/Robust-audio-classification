@@ -6,20 +6,22 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.functional import accuracy
+from .classifier import Classifier
+from pytorch_lightning.metrics import Precision, Recall
 
 from ..utils import get_loss
 
 __all__ = ["LitCRNN"]
 
 
-class LitCRNN(pl.LightningModule):
+class LitCRNN(Classifier):
     """
     Covolutional recurrent neural network. Pytorch-Lightning Version.
     Implementation from paper https://arxiv.org/abs/1609.04243
     """
 
-    def __init__(self, cfg, class_weights):
-        super().__init__()
+    def __init__(self, cfg, class_weights, trial_hparams = None, train_loader = None, val_loader = None):
+        super().__init__(class_weights, cfg["MODEL"]["NUM_CLASSES"], trial_hparams, train_loader, val_loader)
         self.save_hyperparameters(cfg)
         self.learning_rate = cfg["SOLVER"]["LEARNING_RATE"]
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
@@ -56,7 +58,7 @@ class LitCRNN(pl.LightningModule):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
-            
+
     def forward(self, x, seq_lens):
         out = F.max_pool2d(F.elu(self.bn1(self.conv1(x))), 2, stride=2)
         out = self.dropout1(out)
@@ -82,7 +84,7 @@ class LitCRNN(pl.LightningModule):
 
         return out
 
-    
+
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
@@ -91,47 +93,41 @@ class LitCRNN(pl.LightningModule):
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
-    
+
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
         loss = self.loss(out, y, weight=self.class_weights)
-#         loss = label_smoothing_cross_entropy(out, y)
-#         if self.class_weights is not None:
-#             loss = F.cross_entropy(out, y, weight=self.class_weights)
-#         else:
-#             loss = F.cross_entropy(out, y)
 
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
-        self.log('val_loss', loss, prog_bar=True)
-        self.log('val_acc', acc, prog_bar=True)
-        return loss
+        precision = self.val_precision(preds, y)
+        recall = self.val_recall(preds, y)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True)
+        self.log('val_acc', acc, on_epoch=True, prog_bar=True)
+        self.log('val_precision', precision, prog_bar=True)
+        self.log('val_recall', recall, prog_bar=True)
+
+        return loss, y, preds
     
-    
+
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
-        loss = F.cross_entropy(out, y, weight=self.class_weights)
-        
+        if self.class_weights is not None:
+            loss = F.cross_entropy(out, y, weight=self.class_weights)
+        else:
+            loss = F.cross_entropy(out, y)
+
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
+        precision = self.test_precision(preds, y)
+        recall = self.test_recall(preds, y)
         self.log('test_loss', loss, prog_bar=True)
         self.log('test_acc', acc, prog_bar=True)
-        return loss
-    
-    
-    def configure_optimizers(self):
+        self.log('test_precision', precision, prog_bar=True)
+        self.log('test_recall', recall, prog_bar=True)
 
-        optimizer = optim.Adam(
-            params=self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay)
-
-        scheduler = optim.lr_scheduler.StepLR(
-            optimizer, self.step_size,
-            gamma=self.gamma)
-
-        return [optimizer], [scheduler]
+        return loss, y, preds
