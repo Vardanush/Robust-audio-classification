@@ -63,7 +63,7 @@ def uniform_augment(x, extra_noises=None):
     # additive uniform noise to audio clip with randomly sampled snr
     noise_generator = lambda: torch.zeros_like(x).uniform_()
     combination = augment.EffectChain() \
-        .additive_noise(noise_generator, snr=15)
+        .additive_noise(noise_generator, snr=30)
     return apply_augment(x, combination)
 
 
@@ -71,7 +71,7 @@ def gaussian_augment(x, extra_noises=None):
     # additive Gaussian noise to audio clip with randomly sampled snr
     noise_generator = lambda: torch.randn(x.shape)
     combination = augment.EffectChain() \
-        .additive_noise(noise_generator, snr=15) 
+        .additive_noise(noise_generator, snr=30) 
     return apply_augment(x, combination)
 
 

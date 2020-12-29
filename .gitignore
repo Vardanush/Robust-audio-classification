@@ -27,6 +27,8 @@ wheels/
 *.egg
 
 # project dirs
+/attack_results
+/datasets/MUSAN/*
 /datasets/*
 !/datasets/*.*
 /weights
