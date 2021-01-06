@@ -2,14 +2,14 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: False
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: True
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "None" #"SQUARED" #"None" # "NORMAL"
+  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 1
   AUGMENTATION: "none" #'random'
   NOISE_PATH: '../datasets/MUSAN/free-sound/'
@@ -22,12 +22,12 @@ LOSS: 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3   #125
+  MAX_EPOCH: 125   #125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 25
-  SIGMA: 1
+  SIGMA: 0.1
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
