@@ -94,7 +94,14 @@ def evaluate_robustness_smoothing(model, test_loader,
     radii = []
     
     for batch in tqdm(test_loader):
-        x, y, seq_len = batch # Here batch size is 1 
+        x, y, seq_len = batch 
+        
+        # Additional padding as batch size is 1 (collate won't work)
+        if seq_len < 100:
+            temp = torch.zeros(list(x.shape[0:3])+[100])
+            temp[:,:,:,:seq_len] = x
+            x = temp
+            
         x = x.cuda()
         pred_class, radius = model.certify(x, num_samples_1, num_samples_2, alpha=alpha,
                                            batch_size=certification_batch_size, seq_len=seq_len)
@@ -126,7 +133,7 @@ def do_test(configs, checkpoint_path):
     model = get_model(configs, checkpoint_path, class_weights, map_location)
     
     if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
-        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(60), num_samples_2=int(60), alpha=0.05, certification_batch_size=int(10))
+        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(40))
         print(result)
         
     else:

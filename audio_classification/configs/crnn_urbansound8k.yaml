@@ -14,7 +14,7 @@ DATALOADER:
   BATCH_SIZE: 1
   NUM_WORKERS: 20
 SOLVER:
-  LOG_PATH: '../logs/week-6/randomised-smoothing'
+  LOG_PATH: '../logs/week-7/randomised-smoothing'
   NUM_GPUS: 1
   MAX_EPOCH: 50
   MIN_EPOCH: 10
@@ -25,6 +25,6 @@ SOLVER:
   GAMMA: 0.1
 CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
-  SAVE_PATH: '../weights/week-6/randomised-smoothing'
+  SAVE_PATH: '../weights/week-7/randomised-smoothing'
   SAVE_TOP_K: 1
 
