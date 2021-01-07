@@ -261,8 +261,8 @@ class SmoothClassifier(Classifier, ABC):
             class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
-                batch = inputs.repeat((this_batch_size, 1, 1))
-#                 batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
+#                 batch = inputs.repeat((this_batch_size, 1, 1)) # if inputs are audios
+                batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
                 random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
                 seq_lens = seq_len.repeat(this_batch_size)
                 
