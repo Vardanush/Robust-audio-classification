@@ -118,7 +118,8 @@ def do_train(cfg):
     transform = get_transform(cfg)
     augment = cfg['DATASET']['AUGMENTATION']
     train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=transform, augment=augment)
-    tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir=cfg["SOLVER"]["LOG_PATH"], name=cfg["CHECKPOINT"]["SAVE_NAME"])
+#     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
         dirpath=cfg["CHECKPOINT"]["SAVE_PATH"],
