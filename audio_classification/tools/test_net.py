@@ -56,3 +56,4 @@ if __name__ == "__main__":
     with open(args.config, "r") as config_file:
         configs = yaml.load(config_file)
     do_test(configs, args.path)
+

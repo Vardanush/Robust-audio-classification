@@ -145,7 +145,7 @@ class LitCRNN(Classifier):
         self.log('test_recall', recall, prog_bar=True)
         self.log('val_loss', loss, prog_bar=True)
         self.log('val_acc', acc, prog_bar=True)
-        return loss
+        return loss, y, preds
 
     def mixup_data(self, x, y):
         if self.alpha > 0:
