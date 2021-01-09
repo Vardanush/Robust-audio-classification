@@ -2,9 +2,9 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: False
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
-    INCLUDE_TRANSFORM: True
+    INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
@@ -20,7 +20,7 @@ TRANSFORM:
   HOP_LENGTH: 256
 LOSS: 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/bmw/'
+  LOG_PATH: '../logs/bmw/week-7'
   NUM_GPUS: 1
   MAX_EPOCH: 150   #125
   MIN_EPOCH: 1
@@ -31,6 +31,6 @@ SOLVER:
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights/bmw/'
+  SAVE_PATH: '../weights/bmw/week-7'
   SAVE_TOP_K: 1
 

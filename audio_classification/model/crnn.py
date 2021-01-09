@@ -28,15 +28,15 @@ class LitCRNN(Classifier):
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
-        self.include_transform = cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]
+        #self.include_transform = cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
         self.loss = get_loss(loss_fn=cfg['LOSS'])
         self.class_weights = class_weights
-        if self.include_transform:
-            self.hop_length = cfg['TRANSFORM']['HOP_LENGTH']
+        #if self.include_transform:
+         #   self.hop_length = cfg['TRANSFORM']['HOP_LENGTH']
         
         # Transformation of raw audio to melspectrogram
-        self.transform = log_amp_mel_spectrogram(cfg=cfg)
+        #self.transform = log_amp_mel_spectrogram(cfg=cfg)
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -67,11 +67,13 @@ class LitCRNN(Classifier):
 
     def forward(self, x, seq_lens):
         # if using raw audio as input, transform to melspectrogram
+        '''
         if self.include_transform:
             out = self.transform(x)
             seq_lens = torch.floor(seq_lens/self.hop_length) + 1
         else:
-            out = x
+        '''
+        out = x
         
         out = F.max_pool2d(F.elu(self.bn1(self.conv1(out))), 2, stride=2)
         out = self.dropout1(out)

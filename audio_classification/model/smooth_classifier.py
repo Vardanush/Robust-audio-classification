@@ -85,14 +85,16 @@ class SmoothClassifier(Classifier, ABC):
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        noise = torch.zeros(x.shape).cuda()
+        noise = torch.zeros(x.shape).cpu()
 
-        # makes sure that the padded 0s remain unchanged
+        # makes sure that the padded 0s remain unchanged and comment for attacks
+        """
         for i in range(x.shape[0]): # for each sample in batch
-            temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda()
+            temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda() 
             noise[i][:seq_len.data[i]] = temp_noise
+            """
             
-        return self.base_classifier(x + noise, seq_len) 
+        return self.base_classifier(x.cpu() + noise, seq_len.cpu()) 
     
     """
     Added from CRNN
@@ -133,7 +135,7 @@ class SmoothClassifier(Classifier, ABC):
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        out = self(x, original_lengths)
+        out = self.predict(x, seq_len=original_lengths, num_samples=1000, alpha=0.05, batch_size=1)
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
