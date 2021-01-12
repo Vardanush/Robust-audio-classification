@@ -16,7 +16,7 @@ DATALOADER:
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
-LOSS: 'label_smoothing_cross_entropy'
+LOSS: 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/us8k/'
   NUM_GPUS: 1

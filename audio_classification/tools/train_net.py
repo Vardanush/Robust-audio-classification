@@ -116,7 +116,7 @@ def do_train(cfg):
     logger.info("Training on device {}".format(device))
 
     transform = get_transform(cfg)
-    augment = cfg['DATASET']['AUGMENTATION']
+    augment = None #cfg['DATASET']['AUGMENTATION']
     train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=transform, augment=augment)
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=cfg["SOLVER"]["LOG_PATH"], name=cfg["CHECKPOINT"]["SAVE_NAME"])
 #     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
