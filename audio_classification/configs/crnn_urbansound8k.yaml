@@ -28,4 +28,4 @@ CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
   SAVE_PATH: '../weights'
   SAVE_TOP_K: 1
-
+ATTACK: False

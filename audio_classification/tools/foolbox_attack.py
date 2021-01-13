@@ -20,7 +20,7 @@ import yaml
 import torch
 from audio_classification.tools import do_train, get_dataloader, get_model, get_transform
 from audio_classification.tools.train_net import collate
-from audio_classification.model import lit_m11, LitCRNN
+from audio_classification.model import lit_m11, LitCRNN, SmoothClassifier
 from audio_classification.data import BMWDataset, UrbanSoundDataset
 from foolbox import PyTorchModel, accuracy, samples
 from foolbox.attacks import LinfPGD, L2PGD, FGM, FGSM
@@ -99,83 +99,12 @@ def _run(
     return restore_type(x)
 
 
-def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"):
+def attack_model(project_dir, config_path, pretrained_path, title, project="BMW", max_radius=10, save_folder='attack_results/'):
+    device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
         configs = yaml.load(config_file)
-    print(configs)
-
-    # use validattion set
-    if project=="BMW":
-        val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
-    elif project=="UrbanSound8k":
-        val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
-    val_loader = DataLoader(val_set, batch_size=24, shuffle=False,
-                                    num_workers=configs["DATALOADER"]["NUM_WORKERS"],
-                                    pin_memory=True, collate_fn = collate)
-
-    # Get the upper bound and lower bound on the values of the data, to be used as constraint in PGD
-    lower_bounds = []
-    upper_bounds = []
-    for step, (x, y, seq_lens) in enumerate(val_loader):    
-        upper_bounds.append(torch.max(x))
-        lower_bounds.append(torch.min(x))
-    lower_bound = min(lower_bounds)
-    upper_bound = max(upper_bounds)
-    print("Range of the input data is (%f, %f)" %(lower_bound, upper_bound))
-
-    path_to_checkpoint = os.path.join(project_dir, pretrained_path)
-    # Get the class weights, used in reloading the model
-    if configs['DATASET']['WEIGHT']=='NORMAL':
-        weight = torch.tensor([28.9047, 14.8049,  4.5985,  2.4675,  4.4632, 19.5806]).to(device=device)
-    elif configs['DATASET']['WEIGHT']=='SQUARED':
-        weight = torch.tensor([835.4845, 219.1843,  21.1461,   6.0885,  19.9205, 383.4014]).to(device=device)
-    else:
-        weight = None
-
-    model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
-    fmodel = PyTorchModel(model, bounds=(lower_bound, upper_bound), device=device)
-
-    # evaluate accuracy on clean data on a batch
-    it = iter(val_loader)
-    batch = next(it)
-    clips = batch[0].to(device)
-    labels = batch[1].to(device)
-    lengths = batch[2].to(device)   # used only for CRNN
-
-    # delete some variables to free up memory
-    del model
-    del it
-    del val_loader
-    del val_set
-
-    # evaluate robustness with L-inf Fast Gradient Attack
-    torch.cuda.empty_cache()
-    attack = FGSM()
-
-    attack.run = types.MethodType(_run, attack)
-    attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
-    attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, 0.15, num=20)
-
-    start_time = time.perf_counter()
-    raw, clipped, is_adv = attack(fmodel, clips, labels, epsilons=epsilons, original_lengths=lengths)
-    end_time = time.perf_counter()
-    print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
-
-    robust_accuracy = 1 - is_adv.double().mean(axis=-1)
-    print(robust_accuracy)
-
-    plt.title("L-inf Fast Gradient Attack")
-    plt.xlabel("epsilon")
-    plt.ylabel("accuracy")
-    plt.ylim(0, 1.1)
-    plt.plot(epsilons, robust_accuracy.to('cpu').numpy())
-    plt.savefig(save_folder + title + '-linf-0.15.png')
-
-    
-def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW"):
-    with open(os.path.join(project_dir, config_path), "r") as config_file:
-        configs = yaml.load(config_file)
+    configs["ATTACK"]=True
     print(configs)
 
     # use test/validattion set
@@ -183,7 +112,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
     elif project=="UrbanSound8k":
         val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
-    val_loader = DataLoader(val_set, batch_size=24, shuffle=False,
+    val_loader = DataLoader(val_set, batch_size=60, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
 
@@ -213,7 +142,6 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
         model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
 
     fmodel = PyTorchModel(model, bounds=(lower_bound, upper_bound), device=device)
-
     # evaluate accuracy on clean data on a batch
     it = iter(val_loader)
     batch = next(it)
@@ -222,7 +150,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     lengths = batch[2].to(device)   # used only for CRNN
 
     # delete some variables to free up memory
-    del model
+    # del model
     del it
     del val_loader
     del val_set
@@ -234,15 +162,26 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
     attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, 0.15, num=20)
+    epsilons = np.linspace(0.0, max_radius, num=20)
 
     start_time = time.perf_counter()
-    raw, clipped, is_adv = attack(fmodel, clips, labels, epsilons=epsilons, original_lengths=lengths)
+    robust_accuracy = []
+    for epsilon in epsilons:
+        torch.cuda.empty_cache()
+        raw, clipped, is_adv = attack(fmodel, clips, labels, epsilons=epsilon, original_lengths=lengths)
+        preds = []
+        for i, clip in enumerate(clipped):
+            x = torch.unsqueeze(clip, 0)
+            out = model(x.to(device), lengths[i])
+            preds = torch.argmax(out, dim=1)
+            preds.append(torch.argmax(out, dim=1).item()) #1000 samples
+        print(preds)
+        is_adv = torch.tensor(preds != batch[1].numpy())
+        robust_accuracy.append(1 - is_adv.double().mean(axis=-1))
     end_time = time.perf_counter()
     print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
 
-    # TODO: use predict to evaluate robust accuracy
-    robust_accuracy = 1 - is_adv.double().mean(axis=-1)
+    robust_accuracy = torch.stack(robust_accuracy)
     print(robust_accuracy)
 
     plt.title("L-inf Fast Gradient Attack")
@@ -250,4 +189,99 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     plt.ylabel("accuracy")
     plt.ylim(0, 1.1)
     plt.plot(epsilons, robust_accuracy.to('cpu').numpy())
-    plt.savefig(save_folder + title + '-linf-0.15.png')
+    plt.savefig(save_folder + title + '-linf-' + str(max_radius) + '.png')
+
+    
+def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
+    device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    torch.backends.cudnn.enabled = False
+    with open(os.path.join(project_dir, config_path), "r") as config_file:
+        configs = yaml.load(config_file)
+    configs["ATTACK"]=True
+    print(configs)
+
+    # use test/validattion set
+    if project=="BMW":
+        val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
+    elif project=="UrbanSound8k":
+        val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
+    val_loader = DataLoader(val_set, batch_size=60, shuffle=False,
+                                    num_workers=configs["DATALOADER"]["NUM_WORKERS"],
+                                    pin_memory=True, collate_fn = collate)
+
+    # Get the upper bound and lower bound on the values of the data, to be used as constraint in PGD
+    lower_bounds = []
+    upper_bounds = []
+    for step, (x, y, seq_lens) in enumerate(val_loader):    
+        upper_bounds.append(torch.max(x))
+        lower_bounds.append(torch.min(x))
+    lower_bound = min(lower_bounds)
+    upper_bound = max(upper_bounds)
+    print("Range of the input data is (%f, %f)" %(lower_bound, upper_bound))
+
+    path_to_checkpoint = os.path.join(project_dir, pretrained_path)
+    # Get the class weights, used in reloading the model
+    if configs['DATASET']['WEIGHT']=='NORMAL':
+        weight = torch.tensor([28.9047, 14.8049,  4.5985,  2.4675,  4.4632, 19.5806]).to(device=device)
+    elif configs['DATASET']['WEIGHT']=='SQUARED':
+        weight = torch.tensor([835.4845, 219.1843,  21.1461,   6.0885,  19.9205, 383.4014]).to(device=device)
+    else:
+        weight = None
+
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        base_classifier = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
+        model = SmoothClassifier.load_from_checkpoint(checkpoint_path=path_to_checkpoint, cfg=configs, map_location=device, class_weights=weight, base_classifier = base_classifier.to(device=device))
+    else:    
+        model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
+
+    fmodel = PyTorchModel(model, bounds=(lower_bound, upper_bound), device=device)
+    # evaluate accuracy on clean data on a batch
+    it = iter(val_loader)
+    batch = next(it)
+    clips = batch[0].to(device)
+    labels = batch[1].to(device)
+    lengths = batch[2].to(device)   # used only for CRNN
+
+    # delete some variables to free up memory
+    # del model
+    del it
+    del val_loader
+    del val_set
+
+    # evaluate robustness with L-inf Fast Gradient Attack
+    torch.cuda.empty_cache()
+    if attack_type == 'linf':
+        attack = FGSM()
+    elif attack_type == 'l2':
+        attack = FGM()
+
+    attack.run = types.MethodType(_run, attack)
+    attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
+    attack.value_and_grad = types.MethodType(_value_and_grad, attack)
+    epsilons = np.linspace(0.0, max_radius, num=20)
+
+    start_time = time.perf_counter()
+    robust_accuracy = []
+    for epsilon in epsilons:
+        torch.cuda.empty_cache()
+        raw, clipped, is_adv = attack(fmodel, clips, labels, epsilons=epsilon, original_lengths=lengths)
+        preds = []
+        for i, clip in enumerate(clipped):
+            x = torch.unsqueeze(clip, 0)
+            preds.append(model.predict(x.to(device), seq_len=lengths[i], num_samples=50, alpha=0.05, batch_size=1))
+        is_adv = torch.tensor(preds != batch[1].numpy())
+        robust_accuracy.append(1 - is_adv.double().mean(axis=-1))
+    end_time = time.perf_counter()
+    print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
+    
+    del model
+    
+    robust_accuracy = torch.stack(robust_accuracy)
+    print(robust_accuracy)
+
+    plt.title("L-inf Fast Gradient Attack")
+    plt.xlabel("epsilon")
+    plt.ylabel("accuracy")
+    plt.ylim(0, 1.1)
+    plt.plot(epsilons, robust_accuracy.to('cpu').numpy())
+    plt.savefig(save_folder + title + '-' + attack_type + '-' + str(max_radius) + '.png')
