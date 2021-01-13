@@ -206,8 +206,12 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     else:
         weight = None
 
-    #TODO: load weights using Smooth Classifier
-    model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        base_classifier = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
+        model = SmoothClassifier.load_from_checkpoint(checkpoint_path=path_to_checkpoint, cfg=configs, map_location=device, class_weights=weight, base_classifier = base_classifier.to(device=device))
+    else:    
+        model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
+
     fmodel = PyTorchModel(model, bounds=(lower_bound, upper_bound), device=device)
 
     # evaluate accuracy on clean data on a batch

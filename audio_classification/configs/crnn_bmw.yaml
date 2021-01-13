@@ -33,4 +33,4 @@ CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
   SAVE_PATH: '../weights/bmw/'
   SAVE_TOP_K: 1
-
+ATTACK: False
