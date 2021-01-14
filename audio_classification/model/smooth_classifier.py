@@ -72,6 +72,7 @@ class SmoothClassifier(Classifier, ABC):
         self.base_classifier = base_classifier
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
         self.sigma = cfg["SOLVER"]["SIGMA"]
+        self.attack = cfg["MODEL"]["CRNN"]["ATTACK"]
 
     def forward(self, x, seq_len):
         """
@@ -85,16 +86,19 @@ class SmoothClassifier(Classifier, ABC):
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        noise = torch.zeros(x.shape).cpu()
+        if self.attack:
+            return self.base_classifier(x.cpu(), seq_len) #self.predict(x.cpu(), seq_len=seq_len.cpu(), num_samples=1, alpha=0.05, batch_size=1)
+        
+        noise = torch.zeros(x.shape)
 
-        # makes sure that the padded 0s remain unchanged and comment for attacks
-        """
+        # makes sure that the padded 0s remain unchanged
+        
         for i in range(x.shape[0]): # for each sample in batch
             temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda() 
             noise[i][:seq_len.data[i]] = temp_noise
-            """
             
-        return self.base_classifier(x.cpu() + noise, seq_len.cpu()) 
+            
+        return self.base_classifier(x + noise, seq_len) 
     
     """
     Added from CRNN
@@ -225,7 +229,10 @@ class SmoothClassifier(Classifier, ABC):
         int: the winning class or -1 in case the desired confidence level could not be reached.
         """
         self.base_classifier.eval()
-        class_counts = self._sample_noise_predictions(inputs, num_samples, batch_size, seq_len).cpu()
+        if self.attack:
+            class_counts = self._sample_noise_predictions(inputs, num_samples, batch_size, seq_len).cpu()
+        else:
+            class_counts = self._sample_noise_predictions(inputs, num_samples, batch_size, seq_len)
         top_2_classes = class_counts.argsort()[-2:]
 
         count1 = class_counts[top_2_classes[0]]
@@ -259,13 +266,22 @@ class SmoothClassifier(Classifier, ABC):
         """
         num_remaining = num_samples
         with torch.no_grad():
-            classes = torch.arange(self.num_classes).cuda()
-            class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
+            if self.attack:
+                classes = torch.arange(self.num_classes).cpu()
+                class_counts = torch.zeros([self.num_classes], dtype=torch.long).cpu()
+            else: 
+                classes = torch.arange(self.num_classes).cuda()
+                class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
+                
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
-                batch = inputs.repeat((this_batch_size, 1, 1))
-#                 batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
-                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
+               # batch = inputs.repeat((this_batch_size, 1, 1))
+                batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
+                if self.attack:
+                    random_noise = torch.randn_like(batch).cpu() * torch.tensor(self.sigma).cpu()
+                else:
+                    random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
+                    
                 seq_lens = seq_len.repeat(this_batch_size)
                 
                 predictions = self.base_classifier((batch + random_noise), seq_lens)
