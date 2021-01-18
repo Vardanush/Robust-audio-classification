@@ -24,7 +24,7 @@ class Attacker(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-# Modification of the code from https://github.com/jeromerony/fast_adversarial
+#  Modification of the code from https://github.com/jeromerony/fast_adversarial
 class PGD_L2(Attacker):
     """
     PGD attack
