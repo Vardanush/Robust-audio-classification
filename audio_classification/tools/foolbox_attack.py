@@ -100,7 +100,7 @@ def _run(
 
 
 def attack_model(project_dir, config_path, pretrained_path, title, project="BMW", max_radius=10, save_folder='attack_results/'):
-    device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    device = torch.device('cpu')#(torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
         configs = yaml.load(config_file)
@@ -157,7 +157,7 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
 
     # evaluate robustness with L-inf Fast Gradient Attack
     torch.cuda.empty_cache()
-    attack = FGSM()
+    attack = FGM()
 
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
@@ -184,7 +184,7 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     robust_accuracy = torch.stack(robust_accuracy)
     print(robust_accuracy)
 
-    plt.title("L-inf Fast Gradient Attack")
+    plt.title("L-2 Fast Gradient Attack")
     plt.xlabel("epsilon")
     plt.ylabel("accuracy")
     plt.ylim(0, 1.1)
