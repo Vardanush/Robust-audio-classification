@@ -87,15 +87,15 @@ class SmoothClassifier(Classifier, ABC):
         -------
         torch.Tensor of shape [B, K] where K is the number of classes
         """
-        noise = torch.zeros(x.shape).cuda() # makes sure that the padded 0s remain unchanged  
-#         noise = torch.zeros(x.shape)
+#        noise = torch.zeros(x.shape).cuda() # makes sure that the padded 0s remain unchanged  
+        noise = torch.zeros(x.shape).cpu()
               
         if not self.attack:
             for i in range(x.shape[0]): # for each sample in batch
                 temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda()
 #                 temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32) * torch.tensor(self.sigma)
                 noise[i][:seq_len.data[i]] = temp_noise
-            
+
         return self.base_classifier(x + noise, seq_len) 
     
     """
@@ -261,18 +261,18 @@ class SmoothClassifier(Classifier, ABC):
         """
         num_remaining = num_samples
         with torch.no_grad():
-            classes = torch.arange(self.num_classes).cuda()
-#             classes = torch.arange(self.num_classes)
-            class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
-#             class_counts = torch.zeros([self.num_classes], dtype=torch.long)
+         #   classes = torch.arange(self.num_classes).cuda()
+            classes = torch.arange(self.num_classes)
+ #           class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
+            class_counts = torch.zeros([self.num_classes], dtype=torch.long)
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
                 if self.include_transform:
                     batch = inputs.repeat((this_batch_size, 1, 1)) # if inputs are audios
                 else:
                     batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
-                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
-#                 random_noise = torch.randn_like(batch)* torch.tensor(self.sigma) # add random noise here
+#                random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
+                random_noise = torch.randn_like(batch)* torch.tensor(self.sigma) # add random noise here
                 seq_lens = seq_len.repeat(this_batch_size)
                 
                 predictions = self.base_classifier((batch + random_noise), seq_lens)

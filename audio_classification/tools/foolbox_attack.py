@@ -194,6 +194,7 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     
 def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    device = torch.device('cpu')
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
         configs = yaml.load(config_file)
@@ -204,7 +205,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     if project=="BMW":
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
     elif project=="UrbanSound8k":
-        val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
+        val_set = UrbanSoundDataset(configs, [1], transform=get_transform(configs))
     val_loader = DataLoader(val_set, batch_size=60, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
@@ -234,6 +235,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     else:    
         model = LitCRNN.load_from_checkpoint(path_to_checkpoint, cfg=configs, class_weights=weight, strict=False, map_location=device)
 
+    print("model device", next(model.parameters()).is_cuda)
     fmodel = PyTorchModel(model, bounds=(lower_bound, upper_bound), device=device)
     # evaluate accuracy on clean data on a batch
     it = iter(val_loader)
@@ -258,7 +260,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
     attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, max_radius, num=20)
+    epsilons = np.linspace(0.0, max_radius, num=50)
 
     start_time = time.perf_counter()
     robust_accuracy = []
