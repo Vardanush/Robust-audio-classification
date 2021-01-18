@@ -111,10 +111,10 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     # use test/validattion set
     if project=="BMW":
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
-        num_batches=3
+        num_batches = 3
     elif project=="UrbanSound8k":
         val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
-        num_batches = 3
+        num_batches = 40
     val_loader = DataLoader(val_set, batch_size=20, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
@@ -204,10 +204,10 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     # use test/validattion set
     if project=="BMW":
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
-        num_batches=3
+        num_batches = 3
     elif project=="UrbanSound8k":
         val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
-        num_batches = 3
+        num_batches = 40
     val_loader = DataLoader(val_set, batch_size=20, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
@@ -295,10 +295,10 @@ def attack_model_per_class(project_dir, config_path, pretrained_path, project="B
     # use test/validattion set
     if project=="BMW":
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
-        num_batches=3
+        num_batches = 3
     elif project=="UrbanSound8k":
         val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
-        num_batches = 3
+        num_batches = 40
     val_loader = DataLoader(val_set, batch_size=20, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
