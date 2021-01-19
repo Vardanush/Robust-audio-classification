@@ -1,0 +1,29 @@
+CHECKPOINT:
+  SAVE_NAME: crnn-us8k
+  SAVE_PATH: ../weights
+  SAVE_TOP_K: 1
+DATALOADER:
+  BATCH_SIZE: 6
+  NUM_WORKERS: 20
+DATASET:
+  ANNOTATION_PATH: /nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv
+  FILE_PATH: /nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/
+  NAME: UrbanSounds8K
+  VAL_FOLD: 2
+  WEIGHT: NORMAL
+MODEL:
+  CRNN:
+    INCLUDE_TOP: true
+    MIXUP: true
+  NAME: LitCRNN
+  NUM_CLASSES: 10
+SOLVER:
+  ALPHA: 0.7608399210841633
+  GAMMA: 0.1
+  LEARNING_RATE: 0.0004881731392294949
+  LOG_PATH: ../logs/
+  MAX_EPOCH: 35
+  MIN_EPOCH: 10
+  NUM_GPUS: 1
+  STEP_SIZE: 7
+  WEIGHT_DECAY: 2.628328526113425e-08

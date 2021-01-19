@@ -193,7 +193,7 @@ def get_transform(cfg):
 def get_dataloader(cfg, trial_hparams=None,transform=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-    test_folds = [1] # Change to test fold 1 for urban sound 8k
+    test_folds = [11] # Change to test fold 1 for urban sound 8k
     train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
 
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":

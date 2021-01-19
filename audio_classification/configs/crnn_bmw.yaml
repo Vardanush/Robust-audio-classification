@@ -6,12 +6,12 @@ MODEL:
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
-  FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
+  ANNOTATION_PATH: '/nfs/homedirs/nikoghos/BMW/meta/bmw.csv'
+  FOLDER_PATH: '/nfs/homedirs/nikoghos/Brake_Noise'
   WEIGHT: "NORMAL" #"SQUARED" #"None"
-  VAL_FOLD: 11
+  VAL_FOLD: 4
 DATALOADER:
-  BATCH_SIZE: 16
+  BATCH_SIZE: 8
   NUM_WORKERS: 20
 SOLVER:
   LOG_PATH: '../logs/'

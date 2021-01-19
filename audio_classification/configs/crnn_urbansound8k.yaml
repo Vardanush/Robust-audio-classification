@@ -8,7 +8,7 @@ DATASET:
   NAME: "UrbanSounds8K"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
-  VAL_FOLD: 2
+  VAL_FOLD: 10
   WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
   BATCH_SIZE: 6
