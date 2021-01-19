@@ -1,11 +1,17 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
+
+import pytorch_lightning as pl
 from pytorch_lightning.metrics.functional import accuracy
+from .classifier import Classifier
 from pytorch_lightning.metrics import Precision, Recall
+
+from ..utils import get_loss, log_amp_mel_spectrogram
 from .classifier import Classifier
 
 __all__ = ["LitCRNN"]
@@ -26,10 +32,19 @@ class LitCRNN(Classifier):
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
         self.alpha = cfg["SOLVER"]["ALPHA"]
-        
+
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
+        self.include_transform = cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]
+        self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
+        self.loss = get_loss(loss_fn=cfg['LOSS'])
+        self.class_weights = class_weights
+        if self.include_transform:
+            self.hop_length = cfg['TRANSFORM']['HOP_LENGTH']
+
+        # Transformation of raw audio to melspectrogram
+        self.transform = log_amp_mel_spectrogram(cfg=cfg)
         self.mixup = cfg["MODEL"]["CRNN"]["MIXUP"]
-        
+
 
         # Conv block 1
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
@@ -57,8 +72,16 @@ class LitCRNN(Classifier):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
+
     def forward(self, x, seq_lens):
-        out = F.max_pool2d(F.elu(self.bn1(self.conv1(x))), 2, stride=2)
+        # if using raw audio as input, transform to melspectrogram
+        if self.include_transform:
+            out = self.transform(x)
+            seq_lens = torch.floor(seq_lens/self.hop_length) + 1
+        else:
+            out = x
+
+        out = F.max_pool2d(F.elu(self.bn1(self.conv1(out))), 2, stride=2)
         out = self.dropout1(out)
         out = F.max_pool2d(F.elu(self.bn2(self.conv2(out))), 3, stride=3)
         out = self.dropout2(out)
@@ -81,16 +104,16 @@ class LitCRNN(Classifier):
             out = self.linear(out)
 
         return out
-    
+
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         if self.mixup:
             x, y_a, y_b, lam = self.mixup_data(x, y)
             x, y_a, y_b = map(Variable, (x, y_a, y_b))
-            
+
             out = self(x, original_lengths)
             loss = self.mixup_criterion(out, y_a, y_b, lam)
-           
+
         else:
             out = self(x, original_lengths)
             loss = F.cross_entropy(out, y)
@@ -104,17 +127,17 @@ class LitCRNN(Classifier):
         if self.mixup:
             x, y_a, y_b, lam = self.mixup_data(x, y)
             x, y_a, y_b = Variable(x), Variable(y_a), Variable(y_b)
-            
+
             out = self(x, original_lengths)
             loss = self.mixup_criterion(out, y_a, y_b, lam)
-            
+
             preds = torch.argmax(out, dim=1)
             acc = self.mixup_accuracy(preds, y_a, y_b, lam)
         else:
             loss = F.cross_entropy(out, y)
             preds = torch.argmax(out, dim=1)
             acc = accuracy(preds, y)
-            
+
             precision = self.val_precision(preds, y)
             recall = self.val_recall(preds, y)
             self.log('val_precision', precision, prog_bar=True)
@@ -126,7 +149,7 @@ class LitCRNN(Classifier):
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        
+
         out = self(x, original_lengths)
 
         if self.class_weights is not None:
@@ -134,6 +157,7 @@ class LitCRNN(Classifier):
         else:
             loss = F.cross_entropy(out, y)
 
+>>>>>>>>> Temporary merge branch 2
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
@@ -158,14 +182,13 @@ class LitCRNN(Classifier):
         y_a, y_b = y, y[index]
 
         return mixed_x, y_a, y_b, lam
-    
+
     def mixup_criterion(self, preds, y_a, y_b, lam):
         if self.class_weights  is not None:
             return lam * F.cross_entropy(preds, y_a, self.class_weights) + (1 - lam) * F.cross_entropy(preds, y_b, self.class_weights)
-        
+
         return lam * F.cross_entropy(preds, y_a) + (1 - lam) * F.cross_entropy(preds, y_b)
-    
+
     def mixup_accuracy(self, preds, y_a, y_b, lam):
         return lam * accuracy(preds, y_a) + (1 - lam) * accuracy(preds, y_b)
-   
-        
+

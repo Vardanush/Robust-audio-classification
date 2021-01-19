@@ -1,5 +1,5 @@
 #foolbox (forked version)
-foolbox/
+#foolbox/
 
 # output dir
 output
@@ -27,7 +27,13 @@ wheels/
 *.egg
 
 # project dirs
+/attack_results
+/datasets/MUSAN/*
 /datasets/*
 !/datasets/*.*
 /weights
 /logs
+*/profile.txt
+
+#logs 
+notebooks/lightning_logs/

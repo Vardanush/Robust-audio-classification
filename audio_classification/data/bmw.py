@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import os.path
 from sklearn.model_selection import StratifiedKFold 
+from audio_classification.utils import get_available_noises
+from audio_classification.utils.audio_augment import augment_options
 
 __all__ = ["BMWDataset"]
 
@@ -15,7 +17,7 @@ class BMWDataset(Dataset):
     Wrapper for the BMW dataset.
     """
 
-    def __init__(self, cfg, folder_list, transform=None):
+    def __init__(self, cfg, folder_list, transform=None, augment='none'):
         super().__init__()
         self.annotation_path = cfg["DATASET"]["ANNOTATION_PATH"]
         if os.path.isfile(self.annotation_path):
@@ -44,6 +46,15 @@ class BMWDataset(Dataset):
 
         self.folder_list = folder_list
         self.transform = transform
+        
+        #for agumentation
+        self.augment = augment
+        print("Data augmentation for BMW dataset: {}".format(self.augment))
+        if self.augment =='noise':
+            self.background_noises = get_available_noises(path=cfg['DATASET']['NOISE_PATH'])
+        else:
+            self.background_noises = None
+        
 
     @staticmethod
     def _find_classes(directory):
@@ -108,6 +119,12 @@ class BMWDataset(Dataset):
         sound = torchaudio.load(self.file_names[index], out=None, normalization=True)
         label = self.labels[index]
         audio = sound[0]
+        
+        # for agumentation
+        if self.augment!='none':
+            audio = augment_options[self.augment](audio, extra_noises = self.background_noises)
+        
+        # for transform (e.g. spectrogram)
         if self.transform:
             audio = self.transform(audio)
     
