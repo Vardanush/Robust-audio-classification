@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import AdvancedProfiler
 from audio_classification.data import UrbanSoundDataset
 from audio_classification.data import BMWDataset
-from audio_classification.model import LitCRNN, SmoothClassifier
+from audio_classification.model import LitCRNN, SmoothClassifier, SmoothADV
 from audio_classification.model import LitDeepCNN, lit_m18, lit_m11
 from audio_classification.utils import audio_transform
 from audio_classification.utils import class_weighting
@@ -79,12 +79,12 @@ def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
         batch_size = cfg["DATALOADER"]["BATCH_SIZE"]
 
     train_loader = DataLoader(train_set, batch_size=batch_size,
-                                  shuffle=True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
+                                  shuffle=True, drop_last = True, num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                   pin_memory=True, collate_fn = collate_fn)
-    val_loader = DataLoader(val_set, batch_size=batch_size,
+    val_loader = DataLoader(val_set, batch_size=batch_size, drop_last = True,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
-    test_loader = DataLoader(test_set, batch_size=batch_size,
+    test_loader = DataLoader(test_set, batch_size=batch_size, drop_last = True,
                                 num_workers=cfg["DATALOADER"]["NUM_WORKERS"],
                                 pin_memory=True, collate_fn = collate_fn)
 
@@ -93,7 +93,7 @@ def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
     return train_loader, val_loader, test_loader, class_weights
 
 
-def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
+def get_model(cfg, weights, device, trial_hparams, train_loader, val_loader):
 
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
@@ -106,7 +106,9 @@ def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
 
     if cfg["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
         model = SmoothClassifier(cfg = cfg, class_weights=weights, base_classifier=model, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
-
+    else:
+        model = SmoothADV(cfg = cfg, class_weights=weights, base_classifier=model, device=device, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
+        
     return model
 
 
@@ -133,7 +135,7 @@ def do_train(cfg):
 
     trial_hparams = None
 
-    model = get_model(cfg, class_weights, trial_hparams, train_loader, val_loader)
+    model = get_model(cfg, class_weights, device, trial_hparams, train_loader, val_loader)
     profiler = AdvancedProfiler(output_filename='profile.txt')
     trainer = pl.Trainer(gpus=cfg["SOLVER"]["NUM_GPUS"],
                          min_epochs=cfg["SOLVER"]["MIN_EPOCH"],

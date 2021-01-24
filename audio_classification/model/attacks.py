@@ -16,7 +16,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from typing import Optional
 
-from ..model import Classifier
+from .classifier import Classifier
+
+__all__ = ['Attacker', 'PGD_L2']
 
 class Attacker(metaclass=ABCMeta):
     @abstractmethod
@@ -49,19 +51,19 @@ class PGD_L2(Attacker):
         self.max_norm = max_norm
         self.device = device
 
-    def attack(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor,
+    def attack(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor, seq_len,
                noise: torch.Tensor = None, num_noise_vectors=1, targeted: bool = False, no_grad=False) -> torch.Tensor:
         if num_noise_vectors == 1:
-            return self._attack(model, inputs, labels, noise, targeted)
+            return self._attack(model, inputs, labels, seq_len, noise, targeted)
         else:
             if no_grad:
                 with torch.no_grad():
-                    return self._attack_mutlinoise_no_grad(model, inputs, labels, noise, num_noise_vectors, targeted)
+                    return self._attack_mutlinoise_no_grad(model, inputs, labels, seq_len, noise, num_noise_vectors, targeted)
             else:
-                    return self._attack_mutlinoise(model, inputs, labels, noise, num_noise_vectors, targeted)
+                    return self._attack_mutlinoise(model, inputs, labels, seq_len, noise, num_noise_vectors, targeted)
 
 
-    def _attack(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor,
+    def _attack(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor, seq_len,
                noise: torch.Tensor = None, targeted: bool = False) -> torch.Tensor:
         """
         Performs the attack of the model for the inputs and labels.
@@ -70,7 +72,7 @@ class PGD_L2(Attacker):
         model : Classifier
             Model to attack.
         inputs : torch.Tensor
-            Batch of samples to attack. Values should be in the [0, 1] range.
+            Batch of samples to attack. Values should be in the [-83, 43] range for BMW. For us8k it is [-100,43]
         labels : torch.Tensor
             Labels of the samples to attack if untargeted, else labels of targets.
         targeted : bool, optional
@@ -80,31 +82,47 @@ class PGD_L2(Attacker):
         torch.Tensor
             Batch of samples modified to be adversarial to the model.
         """
-        # Not for mel-spectrograms
-        #if inputs.min() < 0 or inputs.max() > 1: raise ValueError('Input values should be in the [0, 1] range.')
-    
+        # For mel-spectrograms BMW
+        print("simple attack")
+        if inputs.min() < -100 or inputs.max() > 45: 
+            print("input min", inputs.min())
+            print("input max", inputs.max())
+            raise ValueError('Input values should be in the [-83, 43] range.')
+            
+        
         batch_size = inputs.shape[0]
         multiplier = 1 if targeted else -1
         delta = torch.zeros_like(inputs, requires_grad=True)
-
+        
+        for name, layer in model.named_modules():
+            if isinstance(layer, nn.GRU):
+                layer.train()
+                
+        
         # Setup optimizers
         optimizer = optim.SGD([delta], lr=self.max_norm/self.steps*2)
 
         for i in range(self.steps):
+            #print("inputs attack", inputs)
             adv = inputs + delta
+            #print("adv adter delta", adv)
             if noise is not None:
                 adv = adv + noise
-            logits = model(adv)
-            pred_labels = logits.argmax(1)
+            
+            logits = model(adv, seq_len)
+            #pred_labels = logits.argmax(1)
+            #print("adv after noise", adv)
+            #print("labels in attacks", pred_labels)
+            #print("labels actual", labels)
             ce_loss = F.cross_entropy(logits, labels, reduction='sum')
             loss = multiplier * ce_loss
-
+            
             optimizer.zero_grad()
             loss.backward()
             # renorming gradient
             grad_norms = delta.grad.view(batch_size, -1).norm(p=2, dim=1)
             delta.grad.div_(grad_norms.view(-1, 1, 1, 1))
-            
+
             # avoid nan or inf if gradient is 0
             if (grad_norms == 0).any():
                 delta.grad[grad_norms == 0] = torch.randn_like(delta.grad[grad_norms == 0])
@@ -112,13 +130,13 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs)
-            delta.data.clamp_(0, 1).sub_(inputs)
+            delta.data.clamp_(-100, 43).sub_(inputs) # todo: add corect input range
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
         return inputs + delta
 
 
-    def _attack_mutlinoise(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor,
+    def _attack_mutlinoise(self, model: Classifier, inputs: torch.Tensor, labels: torch.Tensor, seq_len,
                noise: torch.Tensor = None, num_noise_vectors: int = 1, targeted: bool = False) -> torch.Tensor:
         """
         Performs the attack of the model for the inputs and labels.
@@ -137,7 +155,10 @@ class PGD_L2(Attacker):
         torch.Tensor
             Batch of samples modified to be adversarial to the model.
         """
-        #if inputs.min() < 0 or inputs.max() > 1: raise ValueError('Input values should be in the [0, 1] range.')
+        print("Performing multi noise gradient attack")
+        # For mel-spectrograms BMW
+        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
+            
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
         delta = torch.zeros((len(labels), *inputs.shape[1:]), requires_grad=True, device=self.device)
@@ -150,7 +171,7 @@ class PGD_L2(Attacker):
             adv = inputs + delta.repeat(1,num_noise_vectors,1,1).view_as(inputs)
             if noise is not None:
                 adv = adv + noise
-            logits = model(adv)
+            logits = model(adv, seq_len)
 
             pred_labels = logits.argmax(1).reshape(-1, num_noise_vectors).mode(1)[0]
             # safe softamx
@@ -175,14 +196,14 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(0, 1).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 
         return inputs + delta.repeat(1,num_noise_vectors,1,1).view_as(inputs)
 
 
-    def _attack_mutlinoise_no_grad(self, model: nn.Module, inputs: torch.Tensor, labels: torch.Tensor,
+    def _attack_mutlinoise_no_grad(self, model: nn.Module, inputs: torch.Tensor, labels: torch.Tensor, seq_len,
                noise: torch.Tensor = None, num_noise_vectors: int = 1,targeted: bool = False) -> torch.Tensor:
         """
         Performs the attack of the model for the inputs and labels.
@@ -201,11 +222,14 @@ class PGD_L2(Attacker):
         torch.Tensor
             Batch of samples modified to be adversarial to the model.
         """
-        if inputs.min() < 0 or inputs.max() > 1: raise ValueError('Input values should be in the [0, 1] range.')
+        #print("Performing multi noise no gradient attack")
+        # For mel-spectrograms BMW
+        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
+            
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
         delta = torch.zeros((len(labels), *inputs.shape[1:]), requires_grad=True, device=self.device)
-
+        
         # Setup optimizers
         optimizer = optim.SGD([delta], lr=self.max_norm/self.steps*2)
 
@@ -214,10 +238,12 @@ class PGD_L2(Attacker):
             adv = inputs + delta.repeat(1,num_noise_vectors,1,1).view_as(inputs)
             if noise is not None:
                 adv = adv + noise
-            logits = model(adv)
+            
+            logits = model(adv, seq_len)
 
             pred_labels = logits.argmax(1).reshape(-1, num_noise_vectors).mode(1)[0]
             # safe softamx
+
             
             softmax = F.softmax(logits, dim=1)
             grad = F.nll_loss(softmax,  labels.unsqueeze(1).repeat(1,1,num_noise_vectors).view(batch_size*num_noise_vectors), 
@@ -237,9 +263,10 @@ class PGD_L2(Attacker):
             delta = delta + grad*self.max_norm/self.steps*2
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(0, 1).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 
         return inputs + delta.repeat(1,num_noise_vectors,1,1).view_as(inputs)
+    
 
