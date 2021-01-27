@@ -4,12 +4,12 @@ MODEL:
   CRNN:
     RANDOMISED_SMOOTHING: False
     INCLUDE_TOP: True
-    INCLUDE_TRANSFORM: True
+    INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "UrbanSounds8K"
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
-  VAL_FOLD: 10
+  VAL_FOLD: 2
   WEIGHT: "None" #"SQUARED" #"NORMAL" #"None"
   AUGMENTATION: "none" #'random'
   NOISE_PATH: '../datasets/MUSAN/free-sound/'
@@ -20,7 +20,7 @@ TRANSFORM:
   HOP_LENGTH: 256
 LOSS: 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/us8k/'
+  LOG_PATH: '../logs/final/'
   NUM_GPUS: 1
   MAX_EPOCH: 125
   MIN_EPOCH: 1
@@ -31,6 +31,6 @@ SOLVER:
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
-  SAVE_PATH: '../weights/us8k'
+  SAVE_PATH: '../weights/final'
   SAVE_TOP_K: 1
 ATTACK: False

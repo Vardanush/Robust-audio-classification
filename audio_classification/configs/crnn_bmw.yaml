@@ -4,25 +4,25 @@ MODEL:
   CRNN:
     RANDOMISED_SMOOTHING: False
     INCLUDE_TOP: True
-    INCLUDE_TRANSFORM: True
+    INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
-  VAL_FOLD: 1
-  AUGMENTATION: "none" #'random'
+  WEIGHT: "None" #"SQUARED" #"None" # "NORMAL"
+  VAL_FOLD: 2
+  AUGMENTATION: "random" #'random', "none"
   NOISE_PATH: '../datasets/MUSAN/free-sound/'
 DATALOADER:
-  BATCH_SIZE: 8 #8
+  BATCH_SIZE: 4 #8
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
-LOSS: 'cross_entropy'
+LOSS: 'label_smoothing_cross_entropy' # label_smoothing_cross_entropy
 SOLVER:
-  LOG_PATH: '../logs/bmw/'
+  LOG_PATH: '../logs/final/'
   NUM_GPUS: 1
-  MAX_EPOCH: 150   #125
+  MAX_EPOCH: 125   #125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
@@ -31,6 +31,6 @@ SOLVER:
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights/bmw/'
+  SAVE_PATH: '../weights/final/'
   SAVE_TOP_K: 1
 ATTACK: False

@@ -32,6 +32,8 @@ wheels/
 /datasets/*
 !/datasets/*.*
 /weights
+/graphs
+/weights-backup
 /logs
 */profile.txt
 

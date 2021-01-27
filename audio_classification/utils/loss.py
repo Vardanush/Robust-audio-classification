@@ -17,8 +17,8 @@ def label_smoothing_cross_entropy(preds, targets, weight=None, epsilon=0.1):
     Label smoothing from the paper "Rethinking the Inception Architecture for Computer Vision"
     """
     log_preds = F.log_softmax(preds, dim=-1)
-    # calcualte (weighted) average of the negative log_probs for all classes, then average over the batch
     if weight is not None:
+        # calcualte (weighted) average of the negative log_probs for all classes, then average over the batch
         smooth_loss = (-1.0 * torch.mv(log_preds, weight)/weight.sum(dim=0)).mean()
     else:
         smooth_loss = (-1.0 * log_preds.sum(dim=-1)/(preds.size()[-1])).mean() 

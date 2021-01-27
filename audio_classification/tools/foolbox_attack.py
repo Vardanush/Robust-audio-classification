@@ -101,6 +101,7 @@ def _run(
 
 
 def attack_model(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
+#     device = torch.device('cpu')
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
@@ -150,12 +151,16 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     
     # set up Fast Gradient Attack
     torch.cuda.empty_cache()
-    attack = FGSM()
+    if attack_type == 'linf':
+        attack = FGSM()
+        epsilons = np.linspace(0.0, max_radius, num=20)
+    elif attack_type == 'l2':
+        attack = FGM()
+        epsilons = np.linspace(0.0, max_radius, num=50)
 
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
     attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, max_radius, num=20)
 
     # Evaluate robust robustness
     start_time = time.perf_counter()    
@@ -185,12 +190,12 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
     print(robust_accuracy)
 
-    plt.title("L-inf Fast Gradient Attack")
+    plt.title( attack_type + " Fast Gradient Attack")
     plt.xlabel("epsilon")
     plt.ylabel("accuracy")
     plt.ylim(0, 1.1)
     plt.plot(epsilons, robust_accuracy)
-    plt.savefig(save_folder + title + '-linf-' + str(max_radius) + '.png')
+    plt.savefig(save_folder + title + '-'+ attack_type +'-' + str(max_radius) + '.png')
 
     
 def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
@@ -285,6 +290,7 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
 
     
 def attack_model_per_class(project_dir, config_path, pretrained_path, project="BMW", attack_type = 'linf', epsilon=10):
+#     device = torch.device('cpu')
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
@@ -295,11 +301,11 @@ def attack_model_per_class(project_dir, config_path, pretrained_path, project="B
     # use test/validattion set
     if project=="BMW":
         val_set = BMWDataset(configs, [11], transform=get_transform(configs)) # actually the test set
-        num_batches = 3
+        num_batches = 6
     elif project=="UrbanSound8k":
         val_set = UrbanSoundDataset(configs, [10], transform=get_transform(configs))
         num_batches = 40
-    val_loader = DataLoader(val_set, batch_size=20, shuffle=False,
+    val_loader = DataLoader(val_set, batch_size=10, shuffle=False,
                                     num_workers=configs["DATALOADER"]["NUM_WORKERS"],
                                     pin_memory=True, collate_fn = collate)
     del val_set
@@ -382,6 +388,7 @@ def attack_model_per_class(project_dir, config_path, pretrained_path, project="B
             is_adv_count[label][is_adv_all[i]] = 1
         else:
             is_adv_count[label][is_adv_all[i]] += 1
+    print("Attack raidus: %f" % epsilon)
     print("Per class frequncy of prediction class from adversarial samples:")
     pprint(dict(class_count))
     print("Per class frequncy of sucessful attacks from adversarial samples:")

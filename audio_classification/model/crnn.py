@@ -127,6 +127,7 @@ class LitCRNN(Classifier):
 
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
+        
         out = self(x, original_lengths)
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)

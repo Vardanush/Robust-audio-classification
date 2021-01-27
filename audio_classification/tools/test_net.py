@@ -128,7 +128,8 @@ def evaluate_robustness_smoothing(model, test_loader,
 
 def do_test(configs, checkpoint_path):
     # Makesure the batch size of dataloader is 1
-    configs["DATALOADER"]["BATCH_SIZE"] = 1
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
+        configs["DATALOADER"]["BATCH_SIZE"] = 1
 
     _, _, test_loader, class_weights = get_dataloader(configs, trial_hparams = None, transform=get_transform(configs))
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
