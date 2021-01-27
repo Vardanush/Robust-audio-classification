@@ -368,7 +368,7 @@ class SmoothADV(Classifier, ABC):
         p_A_lower_bound = lower_confidence_bound(num_top_class, num_samples, alpha)
                                     
         if p_A_lower_bound < 0.5:
-            return SmoothClassifier.ABSTAIN, 0.0
+            return SmoothADV.ABSTAIN, 0.0
         else:
             radius = self.sigma * norm.ppf(p_A_lower_bound)
             return top_class, radius
@@ -406,7 +406,7 @@ class SmoothADV(Classifier, ABC):
         count2 = class_counts[top_2_classes[1]]
 
         if binom_test(count1, count1+count2, p=0.5) > alpha:
-            return SmoothClassifier.ABSTAIN
+            return SmoothADV.ABSTAIN
         else:
             return top_2_classes[1].item()
 

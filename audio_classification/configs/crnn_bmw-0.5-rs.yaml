@@ -2,10 +2,10 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: False
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: False
-    SMOOTH_ADV: True
+    SMOOTH_ADV: False
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' 

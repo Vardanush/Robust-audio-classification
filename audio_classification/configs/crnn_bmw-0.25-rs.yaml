@@ -2,10 +2,10 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: False
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: False
-    SMOOTH_ADV: True
+    SMOOTH_ADV: False
 DATASET:
   NAME: "BMW"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' 
@@ -34,11 +34,11 @@ SOLVER:
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 25
-  SIGMA: 0.5
+  SIGMA: 0.25
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
   SAVE_PATH: '../weights/final-adv'
   SAVE_TOP_K: 1
-ATTACK: False
+ATTACK: True
 
