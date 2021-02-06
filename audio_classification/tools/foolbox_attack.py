@@ -1,3 +1,6 @@
+"""
+Adversarial Attacks
+"""
 from typing import Union, Any, Optional, Callable, Tuple
 from abc import ABC, abstractmethod
 import eagerpy as ep
@@ -32,9 +35,10 @@ import torchaudio
 import IPython.display as ipd
 from scipy.io.wavfile import write
 
-
+"""
+Overwrite functions in Foolbox. Extend to work with models taking multiple arguments.
+"""
 def _get_loss_fn(self, model: Model, labels: ep.Tensor, original_lengths=None) -> Callable[[ep.Tensor], ep.Tensor]:
-    # can be overridden by users
     def loss_fn(inputs: ep.Tensor, original_lengths) -> ep.Tensor:
         logits = model(inputs, original_lengths)
         return ep.crossentropy(logits, labels).sum()
@@ -43,7 +47,6 @@ def _get_loss_fn(self, model: Model, labels: ep.Tensor, original_lengths=None) -
 
 
 def _value_and_grad(
-    # can be overridden by users
     self,
     loss_fn: Callable[[ep.Tensor], ep.Tensor],
     x: ep.Tensor,
@@ -99,9 +102,21 @@ def _run(
 
     return restore_type(x)
 
-
-def attack_model(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
-#     device = torch.device('cpu')
+"""
+Ran gradient-based attacks with a model on with test set samples. 
+"""
+def attack_model(project_dir, config_path, pretrained_path, title, project="BMW",
+                 attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
+    """
+    Plot the robust accuracy vs attack radius.
+    :param config_path: path to configuration file (YAML) of the model
+    :param pretrained_path: path to pre-trained weights
+    :param title: title to the output graph
+    :param project: either "BMW" or "Urbansound8k"
+    :param attack_type:either "linf" for L-inf fast gradient attack for "l2" for L-2 fast gradient attack
+    :param max_radius: maximal attack radius
+    :param save_folder: path to save the output graph
+    """
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
@@ -198,7 +213,18 @@ def attack_model(project_dir, config_path, pretrained_path, title, project="BMW"
     plt.savefig(save_folder + title + '-'+ attack_type +'-' + str(max_radius) + '.png')
 
     
-def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW", attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
+def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_path, title, project="BMW",
+                                         attack_type = 'linf', max_radius=10, save_folder='attack_results/'):
+    """
+    Plot the robust accuracy vs attack radius using randomize smoothing predictions.
+    :param config_path: path to configuration file (YAML) of the model
+    :param pretrained_path: path to pre-trained weights
+    :param title: title to the output graph
+    :param project: either "BMW" or "Urbansound8k"
+    :param attack_type:either "linf" for L-inf fast gradient attack for "l2" for L-2 fast gradient attack
+    :param max_radius: maximal attack radius
+    :param save_folder: path to save the output graph
+    """
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
     with open(os.path.join(project_dir, config_path), "r") as config_file:
@@ -290,6 +316,17 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
 
     
 def attack_model_per_class(project_dir, config_path, pretrained_path, project="BMW", attack_type = 'linf', epsilon=10):
+    """
+    Count adversarial samples under attack per class.
+    :param config_path: path to configuration file (YAML) of the model
+    :param pretrained_path: path to pre-trained weights
+    :param project: either "BMW" or "Urbansound8k"
+    :param attack_type:either "linf" for L-inf fast gradient attack for "l2" for L-2 fast gradient attack
+    :param epsilon: attack radius
+    :return:
+        class_count: a dict for the count of each misclassfied class per class
+        is_adv_count: a dict for the count of sucessful attacked samples per class
+    """
 #     device = torch.device('cpu')
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     torch.backends.cudnn.enabled = False
@@ -394,4 +431,3 @@ def attack_model_per_class(project_dir, config_path, pretrained_path, project="B
     print("Per class frequncy of sucessful attacks from adversarial samples:")
     pprint(dict(is_adv_count))
     return class_count, is_adv_count
-    

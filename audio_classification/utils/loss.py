@@ -1,7 +1,11 @@
+"""
+Loss function.
+"""
 import torch
 import torch.nn.functional as F
 
 __all__ = ["loss", "label_smoothing_cross_entropy"]
+
 
 def get_loss(loss_fn='cross_entropy'):
     if loss_fn=='cross_entropy':

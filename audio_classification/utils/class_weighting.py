@@ -1,3 +1,6 @@
+"""
+Class weighting.
+"""
 import numpy as np
 
 __all__ = ["calc_weights"]

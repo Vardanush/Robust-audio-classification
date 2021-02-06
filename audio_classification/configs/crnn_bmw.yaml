@@ -7,27 +7,27 @@ MODEL:
     INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "None" #"SQUARED" #"None" # "NORMAL"
+  WEIGHT: "None" # Options are "SQUARED", "None" or "NORMAL"
   VAL_FOLD: 2
-  AUGMENTATION: "random" #'random', "none"
-  NOISE_PATH: '../datasets/MUSAN/free-sound/'
+  AUGMENTATION: "random" #Options are "uniform", "gaussian", "noise", 'random' or "none"
+  NOISE_PATH: '../datasets/MUSAN/free-sound/' # path to MUSAN clips for "noise" augmentation
 DATALOADER:
-  BATCH_SIZE: 4 #8
+  BATCH_SIZE: 4
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
-LOSS: 'label_smoothing_cross_entropy' # label_smoothing_cross_entropy
+LOSS: 'cross_entropy' # Options are 'label_smoothing_cross_entropy' or 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/final/'
   NUM_GPUS: 1
-  MAX_EPOCH: 125   #125
+  MAX_EPOCH: 125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 25
-  SIGMA: 1
+  SIGMA: 1 # for randomized smoothing
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"

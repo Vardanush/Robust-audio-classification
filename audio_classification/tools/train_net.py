@@ -1,3 +1,6 @@
+"""
+Training Routine.
+"""
 import warnings
 import yaml
 import logging
@@ -16,13 +19,14 @@ from audio_classification.utils import audio_transform
 from audio_classification.utils import class_weighting
 from argparse import ArgumentParser
 
+
 def collate(batch):
-    '''
+    """
+    Pad each batch.
     From https://discuss.pytorch.org/t/how-to-create-a-dataloader-with-variable-size-input/8278/3
     Keep in mind for RNN take hidden state corresponding to the last non padded input value
-    Use torch.nn.utils.rnn.pack_padded_sequence
-    
-    '''
+    Use torch.nn.utils.rnn.pack_padded_sequence.
+    """
     data = [item[0] for item in batch] # not including sr in the batch
     target = [item[1] for item in batch]
     length = [item.shape[-1] for item in data]
@@ -36,7 +40,13 @@ def collate(batch):
 
     return [data, target, length]
 
+
 def get_transform(cfg):
+    """
+    Get transforms for audio based on model, dataset and configuration.
+    :param cfg: model configurations
+    :return: torchaudio compatible transform
+    """
     if cfg["MODEL"]["NAME"] == "LitCRNN" and not cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]:
         print("Transformed raw audio into melspectrogram in dataloader.")
         transform = audio_transform.log_amp_mel_spectrogram(cfg=cfg)
@@ -44,13 +54,25 @@ def get_transform(cfg):
         if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
             transform = torchaudio.transforms.Resample(44100, 8000)
         else:
-            transform = torchaudio.transforms.Resample(4800, 8000)
+            transform = torchaudio.transforms.Resample(48000, 8000)
     else:
         transform = None
     return transform
 
 
 def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
+    """
+    Get dataloader based on model configuration.
+    :param cfg: model configurations
+    :param trial_hparams: parameters for hyperparmeter training
+    :param transform: transforms for the audio
+    :param augment: whether to add augmentation on the audio.
+    :return:
+        train_loader: data loader for training
+        val_loader: data loader for validation
+        test_loader: data loader for test
+        class_weights: a list of class weighting to use in training unbalanced data.
+    """
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
     test_folds = [11] if cfg["DATASET"]["NAME"] == "BMW" else [10]
@@ -97,7 +119,15 @@ def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
 
 
 def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
+    """
 
+    :param cfg: model configurations
+    :param weights: a list of class weighting to use in training unbalanced data.
+    :param trial_hparams: parameters for hyperparmeter training
+    :param train_loader: data loader for training
+    :param val_loader: data loader for validation
+    :return: a model based on model configurations.
+    """
     if cfg["MODEL"]["NAME"] == "LitCRNN":
         model = LitCRNN(cfg=cfg, class_weights=weights, trial_hparams=trial_hparams, train_loader=train_loader, val_loader=val_loader)
     elif cfg["MODEL"]["NAME"] == "LitM18":
@@ -114,6 +144,10 @@ def get_model(cfg, weights, trial_hparams, train_loader, val_loader):
 
 
 def do_train(cfg):
+    """
+    Train the model according to model configurations. Save the logs and weights.
+    :param cfg: model configurations
+    """
     logger = logging.getLogger(__name__)
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
     logger.info("Training on device {}".format(device))
@@ -122,7 +156,6 @@ def do_train(cfg):
     augment = cfg['DATASET']['AUGMENTATION']
     train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=transform, augment=augment)
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=cfg["SOLVER"]["LOG_PATH"], name=cfg["CHECKPOINT"]["SAVE_NAME"])
-#     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
         dirpath=cfg["CHECKPOINT"]["SAVE_PATH"],
@@ -147,7 +180,6 @@ def do_train(cfg):
                          profiler=profiler)
 
     trainer.fit(model, train_loader, val_loader)
-
 
 
 if __name__ == "__main__":

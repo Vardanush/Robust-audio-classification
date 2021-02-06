@@ -10,8 +10,8 @@ DATASET:
   ANNOTATION_PATH: '../datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '../datasets/UrbanSound8K/audio/'
   VAL_FOLD: 2
-  WEIGHT: "None" #"SQUARED" #"NORMAL" #"None"
-  AUGMENTATION: "none" #'random'
+  WEIGHT: "None"
+  AUGMENTATION: "none"
   NOISE_PATH: '../datasets/MUSAN/free-sound/'
 DATALOADER:
   BATCH_SIZE: 12

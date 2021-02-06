@@ -1,3 +1,6 @@
+"""
+Convolutional recurrent neural network (CRNN).
+"""
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,8 +19,9 @@ __all__ = ["LitCRNN"]
 
 class LitCRNN(Classifier):
     """
-    Covolutional recurrent neural network. Pytorch-Lightning Version.
+    Convolutional recurrent neural network. Pytorch-Lightning Version.
     Implementation from paper https://arxiv.org/abs/1609.04243
+    Comparing with the original papper, added pack_padded_sequence for better performance.
     """
 
     def __init__(self, cfg, class_weights, trial_hparams = None, train_loader = None, val_loader = None):
@@ -64,7 +68,6 @@ class LitCRNN(Classifier):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
-
     def forward(self, x, seq_lens):
         # if using raw audio as input, transform to melspectrogram
         if self.include_transform:
@@ -97,7 +100,6 @@ class LitCRNN(Classifier):
 
         return out
 
-
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
         out = self(x, original_lengths)
@@ -105,7 +107,6 @@ class LitCRNN(Classifier):
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
-
 
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
@@ -123,7 +124,6 @@ class LitCRNN(Classifier):
         self.log('val_recall', recall, prog_bar=True)
 
         return loss, y, preds
-    
 
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch

@@ -1,10 +1,8 @@
 """
+Resnet 1D.
 Adapted to resnet1D from pytorch's implementation
 https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
-
-#todo: add lightening 
-
 import torch
 from torch import Tensor
 import torch.nn as nn

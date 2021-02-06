@@ -1,3 +1,6 @@
+"""
+Very Deep CNN (M11, M18).
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

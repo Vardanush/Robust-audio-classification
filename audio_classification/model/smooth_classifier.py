@@ -1,4 +1,5 @@
 """
+Randomize Smoothing Classifier.
 Adapted from project 2, course: machine learning for graphs and sequential data
 """
 from abc import ABC
@@ -21,6 +22,7 @@ from .classifier import Classifier
 
 __all__ = ['SmoothClassifier']
 
+
 def lower_confidence_bound(num_class_A: int, num_samples: int, alpha: float) -> float:
     """
     Computes a lower bound on the probability of the event occuring in a Bernoulli distribution.
@@ -40,6 +42,7 @@ def lower_confidence_bound(num_class_A: int, num_samples: int, alpha: float) -> 
 
     """
     return proportion_confint(num_class_A, num_samples, alpha=2 * alpha, method="beta")[0]
+
 
 class SmoothClassifier(Classifier, ABC):
     """
@@ -155,7 +158,6 @@ class SmoothClassifier(Classifier, ABC):
         
         return loss, y, preds
 
-
     def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int, seq_len:int):
         """
         Certify the input sample using randomized smoothing.
@@ -262,9 +264,7 @@ class SmoothClassifier(Classifier, ABC):
         num_remaining = num_samples
         with torch.no_grad():
             classes = torch.arange(self.num_classes).cuda()
-#             classes = torch.arange(self.num_classes)
             class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
-#             class_counts = torch.zeros([self.num_classes], dtype=torch.long)
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
                 if self.include_transform:
@@ -272,7 +272,6 @@ class SmoothClassifier(Classifier, ABC):
                 else:
                     batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
                 random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
-#                 random_noise = torch.randn_like(batch)* torch.tensor(self.sigma) # add random noise here
                 seq_lens = seq_len.repeat(this_batch_size)
                 
                 predictions = self.base_classifier((batch + random_noise), seq_lens)

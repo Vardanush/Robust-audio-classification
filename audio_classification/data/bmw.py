@@ -1,3 +1,6 @@
+"""
+BMW dataset.
+"""
 from torch.utils.data import Dataset
 import torchaudio
 import torch
@@ -96,6 +99,16 @@ class BMWDataset(Dataset):
     
     @staticmethod
     def stratifed_kfold(X, y, n_split=10, shuffle=True, random_state=1, save_path=None):
+        """
+        Create stratified K-fold divisions from a dataset.
+        :param X: a list containing paths to all wav files in the dataset
+        :param y: a list containing one label per audio
+        :param n_split: number of folds
+        :param shuffle: whether to shuffle the samples when dividing the fold
+        :param random_state: set to get the same stratified k-fold division
+        :param save_path: file path for the resulting annotation file
+        :return:
+        """
         kfold = StratifiedKFold(n_splits=n_split, shuffle=shuffle, random_state=random_state)
         meta = []
         fold = 1
@@ -129,5 +142,3 @@ class BMWDataset(Dataset):
             audio = self.transform(audio)
     
         return audio, label
-    
-# Add transform classes here if required!

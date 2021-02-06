@@ -1,3 +1,6 @@
+"""
+Test Routine.
+"""
 import torch
 from audio_classification.tools import get_dataloader, get_transform
 from audio_classification.model import lit_m11, lit_m18, LitCRNN, SmoothClassifier
@@ -8,8 +11,16 @@ import warnings
 from typing import Dict
 from tqdm.autonotebook import tqdm
 
+
 def get_model(cfg, checkpoint_path, class_weights, map_location):
-    
+    """
+    Load pre-trained weights to model.
+    :param cfg: path to configuration file (YAML) of the model
+    :param checkpoint_path: path to pre-trained weight
+    :param class_weights: a list of normal or squared class weighting used in training
+    :param map_location: "cpu" or "cuda"
+    :return: model loaded with pre-trained weights
+    """
     if class_weights is not None:
         weights  = torch.tensor(class_weights).to(device='cuda')
     else:
@@ -56,6 +67,7 @@ def get_model(cfg, checkpoint_path, class_weights, map_location):
             raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
         
     return model
+
 
 def evaluate_robustness_smoothing(model, test_loader,
                                   num_samples_1: int = 1000, num_samples_2: int = 10000,
@@ -127,6 +139,13 @@ def evaluate_robustness_smoothing(model, test_loader,
 
 
 def do_test(configs, checkpoint_path):
+    """
+    Run model for the test set. If the model is a smooth classifier. Use randomized smoothing predictions and
+    output the number of correctly certified, abstain and certification radius. Otherwise, return test accuracy,
+    precision, recall and F1-score.
+    :param configs: path to configuration file (yaml).
+    :param checkpoint_path: path to pre-trained weight.
+    """
     # Makesure the batch size of dataloader is 1
     if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
         configs["DATALOADER"]["BATCH_SIZE"] = 1
@@ -148,7 +167,8 @@ def do_test(configs, checkpoint_path):
     else:
         trainer = pl.Trainer(gpus=configs["SOLVER"]["NUM_GPUS"])
         trainer.test(model, test_dataloaders=test_loader)
-    
+
+
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     parser = ArgumentParser()

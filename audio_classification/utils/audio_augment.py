@@ -5,10 +5,14 @@ import augment
 import numpy as np
 import random
 
-__all__ = ["get_available_noises", "get_random_noise", "noise_augment", "random_augment", "uniform_augment", "gaussian_augment"]
+__all__ = ["get_available_noises", "get_random_noise", "noise_augment", "random_augment",
+           "uniform_augment", "gaussian_augment"]
 
 
 def get_available_noises(path='../datasets/MUSAN/free-sound/'):
+    """
+    Get all noises available in MUSAN background audio clips.
+    """
     annot = os.path.join(path, 'ANNOTATIONS')
     if os.path.isfile(annot):
         with open(annot) as f:
@@ -19,7 +23,11 @@ def get_available_noises(path='../datasets/MUSAN/free-sound/'):
     else:
         raise ValueError("Not a valid annotation file for noises: {}".format(annot))
 
+
 def get_random_noise(background_noises, out_shape, out_sr=48000):
+    """
+    Randomly select a noise from available noise clips.
+    """
     noise_idx=random.randint(0, len(background_noises)-1)
     noise_frames = int(out_shape/3)+1
     random_offset = random.randint(0, 10000)
@@ -31,6 +39,13 @@ def get_random_noise(background_noises, out_shape, out_sr=48000):
 
 
 def apply_augment(x, chain):
+    """
+    Apply a chain of audio augmentation to a clip.
+    :param x: audio clip
+    :param chain: augment function to be applied to the audio
+    :return:
+        x: augmented audio
+    """
     src_info = {'channels': x.size(0),  # number of channels
             'rate': 48000}  # rate of the sample (for BMW:48000)
     target_info = {'channels': 1,
@@ -39,8 +54,6 @@ def apply_augment(x, chain):
         y = chain.apply(
             x, src_info=src_info, target_info=target_info)
 
-        # sox might misbehave sometimes by giving nan/inf if sequences are too short (or silent)
-        # and the effect chain includes eg `pitch`
         if torch.isnan(y).any() or torch.isinf(y).any():
             return x.clone()
         return y
@@ -52,7 +65,9 @@ def apply_augment(x, chain):
     
 
 def noise_augment(x, extra_noises=None):
-    # additive real noise from the MUSAN audio datasets
+    """
+    Additive real noise from the MUSAN audio datasets
+    """
     noise_generator = lambda: get_random_noise(extra_noises, x.shape[1])
     combination = augment.EffectChain() \
         .additive_noise(noise_generator, snr=15)
@@ -60,7 +75,9 @@ def noise_augment(x, extra_noises=None):
 
 
 def uniform_augment(x, extra_noises=None):
-    # additive uniform noise to audio clip with randomly sampled snr
+    """
+    Additive uniform noise to audio clip with randomly sampled snr
+    """
     noise_generator = lambda: torch.zeros_like(x).uniform_()
     combination = augment.EffectChain() \
         .additive_noise(noise_generator, snr=30)
@@ -68,23 +85,26 @@ def uniform_augment(x, extra_noises=None):
 
 
 def gaussian_augment(x, extra_noises=None):
-    # additive Gaussian noise to audio clip with randomly sampled snr
+    """
+    Additive Gaussian noise to audio clip with randomly sampled snr.
+    """
     noise_generator = lambda: torch.randn(x.shape)
     combination = augment.EffectChain() \
         .additive_noise(noise_generator, snr=30) 
     return apply_augment(x, combination)
 
 
-def random_augment(x, extra_noises=None):     
-    # randomly transform the audio clip with time stretch and pitch shift
+def random_augment(x, extra_noises=None):
+    """
+    Randomly transform the audio clip with time stretch and pitch shift.
+    """
     random_tempo_ratio = lambda: np.random.uniform(0.75, 1.25)
     random_pitch_shift = lambda: np.random.randint(-200, +200)
     combination = augment.EffectChain() \
         .tempo("-q", random_tempo_ratio) \
         .pitch("-q", random_pitch_shift).rate(48000)
     return apply_augment(x, combination)
-#     runner = ChainRunner(combination)
-#     return runner
+
 
 # map the inputs to the function blocks
 augment_options = {"random" : random_augment,
@@ -92,32 +112,3 @@ augment_options = {"random" : random_augment,
            "gaussian" : gaussian_augment,
            "noise": noise_augment,
 }
-    
-
-# class ChainRunner:
-#     """
-#     Takes an instance of augment.EffectChain and applies it on pytorch tensors.
-#     """
-
-#     def __init__(self, chain):
-#         self.chain = chain
-
-#     def __call__(self, x):
-#         """
-#         x: torch.Tensor, (channels, length). Must be placed on CPU.
-#         """
-#         src_info = {'channels': x.size(0),  # number of channels
-#                     'rate': 48000}  # rate of the sample (for BMW:48000)
-
-#         target_info = {'channels': 1,
-#                        'rate': 48000}
-
-#         y = self.chain.apply(
-#             x, src_info=src_info, target_info=target_info)
-
-#         # sox might misbehave sometimes by giving nan/inf if sequences are too short (or silent)
-#         # and the effect chain includes eg `pitch`
-#         if torch.isnan(y).any() or torch.isinf(y).any():
-#             return x.clone()
-#         return y
-    

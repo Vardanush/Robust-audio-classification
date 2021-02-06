@@ -1,3 +1,6 @@
+"""
+Abstract base classifier.
+"""
 from abc import ABC
 
 import torch
@@ -10,6 +13,7 @@ from pytorch_lightning.metrics import Precision, Recall
 from sklearn.metrics import classification_report, confusion_matrix
 
 __all__ = ['Classifier']
+
 
 class Classifier(pl.LightningModule, ABC):
     """
@@ -104,10 +108,8 @@ class Classifier(pl.LightningModule, ABC):
         print("Confusion matrix:")
         print(matrix)
 
-
     def train_dataloader(self):
         return self.train_loader
-
 
     def val_dataloader(self):
         return self.val_loader
