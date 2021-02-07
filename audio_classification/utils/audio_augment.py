@@ -9,7 +9,7 @@ __all__ = ["get_available_noises", "get_random_noise", "noise_augment", "random_
            "uniform_augment", "gaussian_augment"]
 
 
-def get_available_noises(path='../datasets/MUSAN/free-sound/'):
+def get_available_noises(path='/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'):
     """
     Get all noises available in MUSAN background audio clips.
     """

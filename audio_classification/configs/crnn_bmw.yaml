@@ -2,35 +2,36 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    RANDOMISED_SMOOTHING: False
+    MIXUP: True
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' #'../datasets/BMW/meta/bmw.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "None" # Options are "SQUARED", "None" or "NORMAL"
+  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
   VAL_FOLD: 2
-  AUGMENTATION: "random" #Options are "uniform", "gaussian", "noise", 'random' or "none"
-  NOISE_PATH: '../datasets/MUSAN/free-sound/' # path to MUSAN clips for "noise" augmentation
+  AUGMENTATION: "noise" #'random'
+  NOISE_PATH: '/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'
 DATALOADER:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 8
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
-LOSS: 'cross_entropy' # Options are 'label_smoothing_cross_entropy' or 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/final/'
+  LOG_PATH: '../logs/fold2_smooth'
   NUM_GPUS: 1
-  MAX_EPOCH: 125
-  MIN_EPOCH: 1
-  LEARNING_RATE: 0.001
-  WEIGHT_DECAY: 0.001
-  STEP_SIZE: 25
-  SIGMA: 1 # for randomized smoothing
+  MAX_EPOCH: 150
+  MIN_EPOCH: 10
+  LEARNING_RATE: 0.00021701925536763377
+  WEIGHT_DECAY: 2.9720995669595073e-08
+  STEP_SIZE: 10
+  ALPHA: 1.7522326562381854
+  SIGMA: 1.0
   GAMMA: 0.5
 CHECKPOINT:
-  SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights/final/'
+  SAVE_NAME: "crnn-bmw_fold2_smooth"
+  SAVE_PATH: '../weights/crnn_bmw'
   SAVE_TOP_K: 1
 ATTACK: False

@@ -29,3 +29,4 @@ def label_smoothing_cross_entropy(preds, targets, weight=None, epsilon=0.1):
     nll_loss = F.nll_loss(log_preds, targets, weight=weight)
     loss = (1 - epsilon) * nll_loss + epsilon * smooth_loss    
     return loss
+

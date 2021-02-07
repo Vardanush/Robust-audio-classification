@@ -84,7 +84,7 @@ def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
         sets = UrbanSoundDataset(cfg, folds, transform=transform)
-        train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
+        train_set = UrbanSoundDataset(cfg, train_folds, transform=transform, augment=augment)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
         test_set = UrbanSoundDataset(cfg, test_folds, transform=transform)
 

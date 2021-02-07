@@ -2,13 +2,14 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
+    MIXUP: True
     INCLUDE_TOP: True
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '../datasets/BMW/meta/bmw_trimmed.csv'
+  ANNOTATION_PATH: '/nfs/homedirs/nikoghos/BMW/meta/trimmed/bmw_trimmed.csv'
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise_Jan20_trim'
-  WEIGHT: "None"
-  VAL_FOLD: 10
+  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
+  VAL_FOLD: 4
 DATALOADER:
   BATCH_SIZE: 8
   NUM_WORKERS: 20
@@ -16,12 +17,13 @@ LOSS: 'cross_entropy'
 SOLVER:
   LOG_PATH: '../logs/bmw_trimmed/'
   NUM_GPUS: 1
-  MAX_EPOCH: 3
+  MAX_EPOCH: 150
   MIN_EPOCH: 1
-  LEARNING_RATE: 0.001
-  WEIGHT_DECAY: 0.001
-  STEP_SIZE: 25
-  GAMMA: 0.5
+  LEARNING_RATE: 0.00021701925536763377
+  WEIGHT_DECAY: 2.9720995669595073e-08 
+  STEP_SIZE: 10
+  GAMMA: 0.1
+  ALPHA: 1.7522326562381854
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw-trimmed"
   SAVE_PATH: '../weights/bmw_trimmed/'
