@@ -3,11 +3,15 @@ Adapted from project 2, course: machine learning for graphs and sequential data
 """
 from abc import ABC
 
+import numpy as np
+
 import torch
 import torch.nn.functional as F
 from scipy.stats import norm, binom_test
 from torch import nn
+from torch.autograd import Variable
 import torch.optim as optim
+
 from statsmodels.stats.proportion import proportion_confint
 from math import ceil
 from typing import Tuple
@@ -67,6 +71,9 @@ class SmoothClassifier(Classifier, ABC):
         self.weight_decay = cfg["SOLVER"]["WEIGHT_DECAY"]
         self.step_size = cfg["SOLVER"]["STEP_SIZE"]
         self.gamma = cfg["SOLVER"]["GAMMA"]
+        self.alpha = cfg["SOLVER"]["ALPHA"]
+
+        self.mixup = cfg["MODEL"]["CRNN"]["MIXUP"]
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
         self.include_transform = cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]
         
@@ -93,7 +100,6 @@ class SmoothClassifier(Classifier, ABC):
         if not self.attack:
             for i in range(x.shape[0]): # for each sample in batch
                 temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32).cuda() * torch.tensor(self.sigma).cuda()
-#                 temp_noise = torch.randn_like(x[i][:seq_len.data[i]], dtype=torch.float32) * torch.tensor(self.sigma)
                 noise[i][:seq_len.data[i]] = temp_noise
             
         return self.base_classifier(x + noise, seq_len) 
@@ -103,12 +109,15 @@ class SmoothClassifier(Classifier, ABC):
     """
     def training_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        
-        out = self(x, original_lengths)
+        if self.mixup:
+            x, y_a, y_b, lam = self.mixup_data(x, y)
+            x, y_a, y_b = map(Variable, (x, y_a, y_b))
 
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
+            out = self(x, original_lengths)
+            loss = self.mixup_criterion(out, y_a, y_b, lam)
+
         else:
+            out = self(x, original_lengths)
             loss = F.cross_entropy(out, y)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -116,24 +125,29 @@ class SmoothClassifier(Classifier, ABC):
 
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        out = self(x, original_lengths)
+        if self.mixup:
+            x, y_a, y_b, lam = self.mixup_data(x, y)
+            x, y_a, y_b = Variable(x), Variable(y_a), Variable(y_b)
 
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
+            out = self(x, original_lengths)
+            loss = self.mixup_criterion(out, y_a, y_b, lam)
+
+            preds = torch.argmax(out, dim=1)
+            acc = self.mixup_accuracy(preds, y_a, y_b, lam)
         else:
+            out = self(x, original_lengths)
             loss = F.cross_entropy(out, y)
+            preds = torch.argmax(out, dim=1)
+            acc = accuracy(preds, y)
 
-        preds = torch.argmax(out, dim=1)
-        acc = accuracy(preds, y)
-        
-        precision = self.val_precision(preds, y)
-        recall = self.val_recall(preds, y)
+            precision = self.val_precision(preds, y)
+            recall = self.val_recall(preds, y)
+            self.log('val_precision', precision, prog_bar=True)
+            self.log('val_recall', recall, prog_bar=True)
+
         self.log('val_loss', loss, on_epoch=True, prog_bar=True)
         self.log('val_acc', acc, on_epoch=True, prog_bar=True)
-        self.log('val_precision', precision, prog_bar=True)
-        self.log('val_recall', recall, prog_bar=True)
-        
-        return loss, y, preds
+        return loss
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
@@ -154,6 +168,28 @@ class SmoothClassifier(Classifier, ABC):
         self.log('test_recall', recall, prog_bar=True)
         
         return loss, y, preds
+
+    def mixup_data(self, x, y):
+        if self.alpha > 0:
+            lam = np.random.beta(self.alpha, self.alpha)
+        else:
+            lam = 1
+
+        index = torch.randperm(x.size()[0])
+        mixed_x = lam * x + (1 - lam) * x[index, :]
+        y_a, y_b = y, y[index]
+
+        return mixed_x, y_a, y_b, lam
+
+    def mixup_criterion(self, preds, y_a, y_b, lam):
+        if self.class_weights  is not None:
+            return lam * F.cross_entropy(preds, y_a, self.class_weights) \
+        + (1 - lam) * F.cross_entropy(preds, y_b, self.class_weights)
+
+        return lam * F.cross_entropy(preds, y_a) + (1 - lam) * F.cross_entropy(preds, y_b)
+
+    def mixup_accuracy(self, preds, y_a, y_b, lam):
+        return lam * accuracy(preds, y_a) + (1 - lam) * accuracy(preds, y_b)
 
 
     def certify(self, inputs: torch.Tensor, n0: int, num_samples: int, alpha: float, batch_size: int, seq_len:int):
@@ -261,7 +297,7 @@ class SmoothClassifier(Classifier, ABC):
         """
         num_remaining = num_samples
         with torch.no_grad():
-            classes = torch.arange(self.num_classes).cuda()
+            classes = torch.arange(self.num_classes)
 #             classes = torch.arange(self.num_classes)
             class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
 #             class_counts = torch.zeros([self.num_classes], dtype=torch.long)

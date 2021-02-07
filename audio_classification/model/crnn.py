@@ -11,7 +11,7 @@ from pytorch_lightning.metrics.functional import accuracy
 from .classifier import Classifier
 from pytorch_lightning.metrics import Precision, Recall
 
-from ..utils import get_loss, log_amp_mel_spectrogram
+from ..utils import log_amp_mel_spectrogram
 from .classifier import Classifier
 
 __all__ = ["LitCRNN"]
@@ -36,12 +36,11 @@ class LitCRNN(Classifier):
         self.include_top = cfg["MODEL"]["CRNN"]["INCLUDE_TOP"]
         self.include_transform = cfg["MODEL"]["CRNN"]["INCLUDE_TRANSFORM"]
         self.num_classes = cfg["MODEL"]["NUM_CLASSES"]
-        self.loss = get_loss(loss_fn=cfg['LOSS'])
         self.class_weights = class_weights
         if self.include_transform:
             self.hop_length = cfg['TRANSFORM']['HOP_LENGTH']
 
-        # Transformation of raw audio to melspectrogram
+#         Transformation of raw audio to melspectrogram
         self.transform = log_amp_mel_spectrogram(cfg=cfg)
         self.mixup = cfg["MODEL"]["CRNN"]["MIXUP"]
 
@@ -74,7 +73,7 @@ class LitCRNN(Classifier):
 
 
     def forward(self, x, seq_lens):
-        # if using raw audio as input, transform to melspectrogram
+#         if using raw audio as input, transform to melspectrogram
         if self.include_transform:
             out = self.transform(x)
             seq_lens = torch.floor(seq_lens/self.hop_length) + 1
@@ -123,10 +122,9 @@ class LitCRNN(Classifier):
 
     def validation_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        out = self(x, original_lengths)
         if self.mixup:
             x, y_a, y_b, lam = self.mixup_data(x, y)
-            x, y_a, y_b = Variable(x), Variable(y_a), Variable(y_b)
+            x, y_a, y_b = map(Variable, (x, y_a, y_b))
 
             out = self(x, original_lengths)
             loss = self.mixup_criterion(out, y_a, y_b, lam)
@@ -134,6 +132,7 @@ class LitCRNN(Classifier):
             preds = torch.argmax(out, dim=1)
             acc = self.mixup_accuracy(preds, y_a, y_b, lam)
         else:
+            out = self(x, original_lengths)
             loss = F.cross_entropy(out, y)
             preds = torch.argmax(out, dim=1)
             acc = accuracy(preds, y)
@@ -157,7 +156,6 @@ class LitCRNN(Classifier):
         else:
             loss = F.cross_entropy(out, y)
 
->>>>>>>>> Temporary merge branch 2
         preds = torch.argmax(out, dim=1)
         acc = accuracy(preds, y)
 
@@ -172,11 +170,11 @@ class LitCRNN(Classifier):
         return loss, y, preds
 
     def mixup_data(self, x, y):
+        # Sample lambda from Beta(alpha, alpha)
         if self.alpha > 0:
             lam = np.random.beta(self.alpha, self.alpha)
         else:
             lam = 1
-
         index = torch.randperm(x.size()[0])
         mixed_x = lam * x + (1 - lam) * x[index, :]
         y_a, y_b = y, y[index]
@@ -185,7 +183,8 @@ class LitCRNN(Classifier):
 
     def mixup_criterion(self, preds, y_a, y_b, lam):
         if self.class_weights  is not None:
-            return lam * F.cross_entropy(preds, y_a, self.class_weights) + (1 - lam) * F.cross_entropy(preds, y_b, self.class_weights)
+            return lam * F.cross_entropy(preds, y_a, self.class_weights) \
+        + (1 - lam) * F.cross_entropy(preds, y_b, self.class_weights)
 
         return lam * F.cross_entropy(preds, y_a) + (1 - lam) * F.cross_entropy(preds, y_b)
 

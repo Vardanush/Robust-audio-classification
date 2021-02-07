@@ -2,37 +2,37 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 10
   CRNN:
-    MIXUP: False
+    MIXUP: True
     RANDOMISED_SMOOTHING: False
     INCLUDE_TOP: True
-    INCLUDE_TRANSFORM: True
+    INCLUDE_TRANSFORM: False
 DATASET:
   NAME: "UrbanSounds8K"
   ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/metadata/UrbanSound8K.csv'
   FILE_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
-  VAL_FOLD: 10
+  VAL_FOLD: 9
   AUGMENTATION: "none" #'random'
-  NOISE_PATH: '../datasets/MUSAN/free-sound/'
+  NOISE_PATH: '/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'
   WEIGHT: "NORMAL" #"SQUARED"
 DATALOADER:
-  BATCH_SIZE: 6
+  BATCH_SIZE: 20
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
-LOSS: 'cross_entropy'
+# LOSS: 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/'
+  LOG_PATH: '../logs/crnn_us8k_fold9_smooth'
   NUM_GPUS: 1
-  MAX_EPOCH: 35
+  MAX_EPOCH: 82
   MIN_EPOCH: 10
-  LEARNING_RATE: 0.0004881731392294949
-  WEIGHT_DECAY: 2.628328526113425e-08
+  LEARNING_RATE: 0.00017083989355164183 #0.0004881731392294949
+  WEIGHT_DECAY: 6.869889122096289e-09 #2.628328526113425e-08
   STEP_SIZE: 7
   GAMMA: 0.1
-  ALPHA: 0.7608399210841633
-  SIGMA: 1
+  ALPHA: 1.9369262397486933 #0.7608399210841633
+  SIGMA: 1.0
 CHECKPOINT:
-  SAVE_NAME: "crnn-us8k"
+  SAVE_NAME: "crnn-us8k_fold9_smooth"
   SAVE_PATH: '../weights/us8k'
   SAVE_TOP_K: 1
 ATTACK: False

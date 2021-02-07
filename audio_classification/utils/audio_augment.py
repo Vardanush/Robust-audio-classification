@@ -8,7 +8,7 @@ import random
 __all__ = ["get_available_noises", "get_random_noise", "noise_augment", "random_augment", "uniform_augment", "gaussian_augment"]
 
 
-def get_available_noises(path='../datasets/MUSAN/free-sound/'):
+def get_available_noises(path='/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'):
     annot = os.path.join(path, 'ANNOTATIONS')
     if os.path.isfile(annot):
         with open(annot) as f:
@@ -79,9 +79,7 @@ def random_augment(x, extra_noises=None):
     # randomly transform the audio clip with time stretch and pitch shift
     random_tempo_ratio = lambda: np.random.uniform(0.75, 1.25)
     random_pitch_shift = lambda: np.random.randint(-200, +200)
-    combination = augment.EffectChain() \
-        .tempo("-q", random_tempo_ratio) \
-        .pitch("-q", random_pitch_shift).rate(48000)
+    combination = augment.EffectChain().tempo("-q", random_tempo_ratio).pitch("-q", random_pitch_shift).rate(48000)
     return apply_augment(x, combination)
 #     runner = ChainRunner(combination)
 #     return runner

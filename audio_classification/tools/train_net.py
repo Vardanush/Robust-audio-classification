@@ -53,17 +53,21 @@ def get_transform(cfg):
 def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-    test_folds = [11] # Change to test fold 1 for urban sound 8k
-    train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
+#     test_folds = [11] # Change to test fold 1 for urban sound 8k
+#     train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
 
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
+        test_folds = [10] 
+        train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
         sets = UrbanSoundDataset(cfg, folds, transform=transform)
-        train_set = UrbanSoundDataset(cfg, train_folds, transform=transform)
+        train_set = UrbanSoundDataset(cfg, train_folds, transform=transform, augment=augment)
         val_set = UrbanSoundDataset(cfg, val_folds, transform=transform)
         test_set = UrbanSoundDataset(cfg, test_folds, transform=transform)
 
     elif cfg["DATASET"]["NAME"] == "BMW":
+        test_folds = [11] 
+        train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
         sets = BMWDataset(cfg, folds, transform=transform)
         train_set = BMWDataset(cfg, train_folds, transform=transform, augment=augment)
         val_set = BMWDataset(cfg, val_folds, transform=transform)
@@ -119,7 +123,6 @@ def do_train(cfg):
     augment = cfg['DATASET']['AUGMENTATION']
     train_loader, val_loader, test_loader, class_weights = get_dataloader(cfg, transform=transform, augment=augment)
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=cfg["SOLVER"]["LOG_PATH"], name=cfg["CHECKPOINT"]["SAVE_NAME"])
-#     tb_logger = pl_loggers.TensorBoardLogger(cfg["SOLVER"]["LOG_PATH"])
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
         dirpath=cfg["CHECKPOINT"]["SAVE_PATH"],
