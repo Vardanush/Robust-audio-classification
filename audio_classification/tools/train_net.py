@@ -53,9 +53,10 @@ def get_transform(cfg):
 def get_dataloader(cfg, trial_hparams=None, transform=None, augment=None):
     folds = list(range(1, 11))
     val_folds = [cfg["DATASET"]["VAL_FOLD"]]
-    test_folds = [11] if cfg["DATASET"]["NAME"] == "BMW" else val_folds
+    test_folds = [11] if cfg["DATASET"]["NAME"] == "BMW" else [10]
     train_folds = [fold for fold in folds if fold not in val_folds and fold not in test_folds]
 
+    print("test fold is", test_folds)
     if cfg["DATASET"]["NAME"] == "UrbanSounds8K":
         # create train and test sets using chosen transform
         sets = UrbanSoundDataset(cfg, folds, transform=transform)

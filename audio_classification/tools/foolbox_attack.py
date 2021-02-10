@@ -242,12 +242,18 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     
     # set up Fast Gradient Attack
     torch.cuda.empty_cache()
-    attack = FGM()
+    if attack_type == 'linf':
+        print("Starting with L-inf attack")
+        attack = FGSM()
+        epsilons = np.linspace(0.0, max_radius, num=20)
+    else:
+        print("Starting with L-2 attack")
+        attack = FGM()
+        epsilons = np.linspace(0.0, max_radius, num=50)
 
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
     attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, max_radius, num=50)
 
     # Evaluate robust robustness
     start_time = time.perf_counter()    
@@ -275,12 +281,19 @@ def attack_model_for_randomize_smoothing(project_dir, config_path, pretrained_pa
     print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
     print(robust_accuracy)
 
-    plt.title("L-2 Fast Gradient Attack")
+    if attack_type == 'linf':
+        plt.title("L-inf Fast Gradient Attack")
+    else:
+        plt.title("L-2 Fast Gradient Attack")
     plt.xlabel("epsilon")
     plt.ylabel("accuracy")
     plt.ylim(0, 1.1)
     plt.plot(epsilons, robust_accuracy)
-    plt.savefig(save_folder + title + '-l2-' + str(max_radius) + '.png')
+    if attack_type == 'linf':
+        plt.savefig(save_folder + title + '-linf-' + str(max_radius) + '.png')
+    else:
+        plt.savefig(save_folder + title + '-l2-' + str(max_radius) + '.png')
+
 
 
     
@@ -334,12 +347,19 @@ def attack_model_for_adv(project_dir, config_path, pretrained_path, title, proje
     
     # set up Fast Gradient Attack
     torch.cuda.empty_cache()
-    attack = FGM()
+    if attack_type == 'linf':
+        print("Starting with L-inf attack")
+        attack = FGSM()
+        epsilons = np.linspace(0.0, max_radius, num=20)
+    else:
+        print("Starting with L-2 attack")
+        attack = FGM()
+        epsilons = np.linspace(0.0, max_radius, num=50)
+    
 
     attack.run = types.MethodType(_run, attack)
     attack.get_loss_fn = types.MethodType(_get_loss_fn, attack)
     attack.value_and_grad = types.MethodType(_value_and_grad, attack)
-    epsilons = np.linspace(0.0, max_radius, num=50)
 
     # Evaluate robust robustness
     start_time = time.perf_counter()    
@@ -357,8 +377,17 @@ def attack_model_for_adv(project_dir, config_path, pretrained_path, title, proje
             preds = []
             for i, clip in enumerate(clipped):
                 x = torch.unsqueeze(clip, 0)
-                preds.append(model.predict(x.to(device), seq_len=lengths[i], num_samples=50, alpha=0.05, batch_size=1))
-            is_adv = preds!=labels.cpu().numpy()
+                pred_label = model.predict(x.to(device), seq_len=lengths[i], num_samples=50, alpha=0.05, batch_size=1)
+                preds.append(pred_label)
+            #print("preds", preds)
+            #print("labels", labels.cpu().numpy())
+            is_adv = []
+            for i in range(20):
+                if preds[i] != labels.cpu().numpy()[i] and preds[i] != -1:
+                    is_adv.append(True)
+                else:
+                    is_adv.append(False)
+            #print("is_adv",is_adv)
             is_adv_all.append(is_adv)
         is_adv_all = np.concatenate(is_adv_all)
         robust_accuracy.append(1-sum(1*is_adv_all)/len(is_adv_all))
@@ -367,10 +396,16 @@ def attack_model_for_adv(project_dir, config_path, pretrained_path, title, proje
     print(f"Generated attacks in {end_time - start_time:0.2f} seconds")
     print(robust_accuracy)
 
-    plt.title("L-2 Fast Gradient Attack")
+    if attack_type == 'linf':
+        plt.title("L-inf Fast Gradient Attack")
+    else:
+        plt.title("L-2 Fast Gradient Attack")
     plt.xlabel("epsilon")
     plt.ylabel("accuracy")
     plt.ylim(0, 1.1)
     plt.plot(epsilons, robust_accuracy)
-    plt.savefig(save_folder + title + '-l2-' + str(max_radius) + '.png')
+    if attack_type == 'linf':
+        plt.savefig(save_folder + title + '-linf-' + str(max_radius) + '.png')
+    else:
+        plt.savefig(save_folder + title + '-l2-' + str(max_radius) + '.png')
 

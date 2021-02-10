@@ -130,7 +130,7 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs)
-            delta.data.clamp_(-100, 43).sub_(inputs) # todo: add corect input range
+            delta.data.clamp_(-100, 45).sub_(inputs) # todo: add corect input range
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
         return inputs + delta
@@ -157,7 +157,7 @@ class PGD_L2(Attacker):
         """
         print("Performing multi noise gradient attack")
         # For mel-spectrograms BMW
-        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
+        if inputs.min() < -100 or inputs.max() > 45: raise ValueError('Input values should be in the [-83, 43] range.')
             
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
@@ -196,7 +196,7 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-100, 45).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 
@@ -224,7 +224,7 @@ class PGD_L2(Attacker):
         """
         #print("Performing multi noise no gradient attack")
         # For mel-spectrograms BMW
-        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
+        if inputs.min() < -100 or inputs.max() > 45: raise ValueError('Input values should be in the [-83, 43] range.')
             
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
@@ -263,7 +263,7 @@ class PGD_L2(Attacker):
             delta = delta + grad*self.max_norm/self.steps*2
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-100, 45).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 

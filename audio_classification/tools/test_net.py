@@ -114,6 +114,8 @@ def evaluate_robustness_smoothing(model, test_loader,
                 temp[:,:,:seq_len] = x
                 x = temp  
         else: # if the input is spectrogram
+            print("here")
+            print(seq_len)
             if seq_len < 100:
                 temp = torch.zeros(list(x.shape[0:3])+[100])
                 temp[:,:,:,:seq_len] = x
@@ -139,7 +141,7 @@ def evaluate_robustness_smoothing(model, test_loader,
 
 def do_test(configs, checkpoint_path):
     # Makesure the batch size of dataloader is 1
-    configs["DATALOADER"]["BATCH_SIZE"] = 1
+    #configs["DATALOADER"]["BATCH_SIZE"] = 1
 
     _, _, test_loader, class_weights = get_dataloader(configs, trial_hparams = None, transform=get_transform(configs))
     device = (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
@@ -151,11 +153,12 @@ def do_test(configs, checkpoint_path):
 
     model = get_model(configs, checkpoint_path, class_weights, map_location, device = device)
     
-    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True or configs["MODEL"]["CRNN"]["SMOOTH_ADV"] == True:
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
         result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(50))
         print(result)
         
     else:
+        print("performing test")
         trainer = pl.Trainer(gpus=configs["SOLVER"]["NUM_GPUS"])
         trainer.test(model, test_dataloaders=test_loader)
     

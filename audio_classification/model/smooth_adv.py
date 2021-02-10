@@ -288,16 +288,7 @@ class SmoothADV(Classifier, ABC):
     
     def test_step(self, batch, batch_idx):
         x, y, original_lengths = batch
-        
-        noise = torch.randn_like(x, device=self.this_device) * self.sigma
-        
-        with torch.enable_grad():
-            x = self.attacker.attack(self, x, y, original_lengths, noise=noise)
-      
-        x = x + noise
-        
         out = self(x, original_lengths)
-        
         if self.class_weights is not None:
             loss = F.cross_entropy(out, y, weight=self.class_weights)
         else:
