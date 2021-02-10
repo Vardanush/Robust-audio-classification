@@ -2,21 +2,20 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 6
   CRNN:
-    MIXUP: True
     RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: False
-    SMOOTH_ADV: True
+    SMOOTH_ADV: False
 DATASET:
   NAME: "BMW"
-  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv'
+  ANNOTATION_PATH: '/nfs/students/winter-term-2020/project-1/datasets/BMW/meta/bmw.csv' 
   FOLDER_PATH: '/nfs/students/winter-term-2020/project-1/datasets/Brake_Noise'
-  WEIGHT: "NORMAL" #"SQUARED" #"None" # "NORMAL"
+  WEIGHT: "NORMAL" 
   VAL_FOLD: 2
-  AUGMENTATION: "noise" #'random'
-  NOISE_PATH: '/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'
+  AUGMENTATION: "none" #'random'
+  NOISE_PATH: '../datasets/MUSAN/free-sound/'
 DATALOADER:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 8 #8
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
@@ -28,17 +27,18 @@ ATTACK_VAL:
   MULTI_NOISE: True # if true the weights of the network are optimized using all the noise samples
 LOSS: 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/bmw/'
+  LOG_PATH: '../logs/final-adv'
   NUM_GPUS: 1
-  MAX_EPOCH: 150   #125
+  MAX_EPOCH: 55   #125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.001
   STEP_SIZE: 25
-  SIGMA: 1
+  SIGMA: 0.25
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-bmw"
-  SAVE_PATH: '../weights/bmw/'
+  SAVE_PATH: '../weights/final-adv'
   SAVE_TOP_K: 1
-ATTACK: False
+ATTACK: True
+

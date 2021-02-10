@@ -73,6 +73,7 @@ class LitCRNN(Classifier):
         if self.include_top:
             self.linear = nn.Linear(32, self.num_classes)
 
+
     def forward(self, x, seq_lens):
 #         if using raw audio as input, transform to melspectrogram
         if self.include_transform:

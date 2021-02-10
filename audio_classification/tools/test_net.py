@@ -3,7 +3,7 @@ Test Routine.
 """
 import torch
 from audio_classification.tools import get_dataloader, get_transform
-from audio_classification.model import lit_m11, lit_m18, LitCRNN, SmoothClassifier
+from audio_classification.model import lit_m11, lit_m18, LitCRNN, SmoothClassifier, SmoothADV
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 import yaml
@@ -11,8 +11,7 @@ import warnings
 from typing import Dict
 from tqdm.autonotebook import tqdm
 
-
-def get_model(cfg, checkpoint_path, class_weights, map_location):
+def get_model(cfg, checkpoint_path, class_weights, map_location, device):
     """
     Load pre-trained weights to model.
     :param cfg: path to configuration file (YAML) of the model
@@ -38,8 +37,19 @@ def get_model(cfg, checkpoint_path, class_weights, map_location):
             raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
         
 
-        model = SmoothClassifier.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, map_location=map_location, class_weights=weights, base_classifier = base_classifier.to(device='cuda'))
-                            
+        model = SmoothClassifier.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, map_location=map_location, class_weights=weights, base_classifier = base_classifier.to(device=device))
+    elif cfg["MODEL"]["CRNN"]["SMOOTH_ADV"] == True:
+        if cfg["MODEL"]["NAME"] == "LitCRNN":
+            base_classifier = LitCRNN(cfg=cfg, class_weights=weights)
+        elif cfg["MODEL"]["NAME"] == "LitM18":
+            base_classifier = lit_m18(cfg, weights)
+        elif cfg["MODEL"]["NAME"] == "LitM11":
+            base_classifier = lit_m11(cfg, weights)
+        else:
+            raise ValueError("Unknown model: {}".format(cfg["MODEL"]["NAME"]))
+
+
+        model = SmoothADV.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, map_location=map_location, class_weights=weights, base_classifier = base_classifier.to(device=device), device = device)
     else: 
        
         if cfg["MODEL"]["NAME"] == "LitCRNN":
@@ -158,10 +168,10 @@ def do_test(configs, checkpoint_path):
     else:
         map_location = 'cpu'
 
-    model = get_model(configs, checkpoint_path, class_weights, map_location)
+    model = get_model(configs, checkpoint_path, class_weights, map_location, device = device)
     
-    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True:
-        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(40))
+    if configs["MODEL"]["CRNN"]["RANDOMISED_SMOOTHING"] == True: # and configs["MODEL"]["CRNN"]["SMOOTH_ADV"] == True if certification radius is required
+        result = evaluate_robustness_smoothing(model, test_loader,num_samples_1=int(1e2), num_samples_2=int(1e3), alpha=0.05, certification_batch_size=int(50))
         print(result)
         
     else:

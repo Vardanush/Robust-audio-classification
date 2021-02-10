@@ -2,8 +2,7 @@ MODEL:
   NAME: "LitCRNN"
   NUM_CLASSES: 10
   CRNN:
-    MIXUP: True
-    RANDOMISED_SMOOTHING: False
+    RANDOMISED_SMOOTHING: True
     INCLUDE_TOP: True
     INCLUDE_TRANSFORM: False
     SMOOTH_ADV: False
@@ -13,10 +12,10 @@ DATASET:
   FILE_PATH: '/nfs/students/winter-term-2020/project-1/datasets/UrbanSound8K/audio/'
   VAL_FOLD: 9
   AUGMENTATION: "none" #'random'
-  NOISE_PATH: '/nfs/students/winter-term-2020/project-1/MUSAN/free-sound/'
-  WEIGHT: "NORMAL" #"SQUARED"
+  NOISE_PATH: '../datasets/MUSAN/free-sound/'
+  WEIGHT: "None" #"SQUARED" #"NORMAL" #"None"
 DATALOADER:
-  BATCH_SIZE: 20
+  BATCH_SIZE: 12
   NUM_WORKERS: 20
 TRANSFORM:
   HOP_LENGTH: 256
@@ -28,17 +27,17 @@ ATTACK_VAL:
   MULTI_NOISE: True # if true the weights of the network are optimized using all the noise samples
 LOSS: 'cross_entropy'
 SOLVER:
-  LOG_PATH: '../logs/us8k/'
+  LOG_PATH: '../logs/final-adv'
   NUM_GPUS: 1
   MAX_EPOCH: 125
   MIN_EPOCH: 1
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.01
   STEP_SIZE: 25
-  SIGMA: 1
+  SIGMA: 0.5
   GAMMA: 0.5
 CHECKPOINT:
   SAVE_NAME: "crnn-us8k"
-  SAVE_PATH: '../weights'
+  SAVE_PATH: '../weights/final-adv'
   SAVE_TOP_K: 1
-ATTACK: False
+ATTACK: True
