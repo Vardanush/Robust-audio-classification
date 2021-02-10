@@ -1,4 +1,5 @@
 '''
+PGD attack for smoothADV
 Adapted from: https://github.com/Hadisalman/smoothing-adversarial
 Paper: https://github.com/Hadisalman/smoothing-adversarial
 
@@ -83,8 +84,7 @@ class PGD_L2(Attacker):
             Batch of samples modified to be adversarial to the model.
         """
         # For mel-spectrograms BMW
-        print("simple attack")
-        if inputs.min() < -100 or inputs.max() > 45: 
+        if inputs.min() < -83 or inputs.max() > 43:
             print("input min", inputs.min())
             print("input max", inputs.max())
             raise ValueError('Input values should be in the [-83, 43] range.')
@@ -103,17 +103,11 @@ class PGD_L2(Attacker):
         optimizer = optim.SGD([delta], lr=self.max_norm/self.steps*2)
 
         for i in range(self.steps):
-            #print("inputs attack", inputs)
             adv = inputs + delta
-            #print("adv adter delta", adv)
             if noise is not None:
                 adv = adv + noise
             
             logits = model(adv, seq_len)
-            #pred_labels = logits.argmax(1)
-            #print("adv after noise", adv)
-            #print("labels in attacks", pred_labels)
-            #print("labels actual", labels)
             ce_loss = F.cross_entropy(logits, labels, reduction='sum')
             loss = multiplier * ce_loss
             
@@ -130,7 +124,7 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs)
-            delta.data.clamp_(-100, 45).sub_(inputs) # todo: add corect input range
+            delta.data.clamp_(-83, 43).sub_(inputs)
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
         return inputs + delta
@@ -155,9 +149,8 @@ class PGD_L2(Attacker):
         torch.Tensor
             Batch of samples modified to be adversarial to the model.
         """
-        print("Performing multi noise gradient attack")
         # For mel-spectrograms BMW
-        if inputs.min() < -100 or inputs.max() > 45: raise ValueError('Input values should be in the [-83, 43] range.')
+        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
             
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
@@ -196,7 +189,7 @@ class PGD_L2(Attacker):
             optimizer.step()
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(-100, 45).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 
@@ -222,9 +215,8 @@ class PGD_L2(Attacker):
         torch.Tensor
             Batch of samples modified to be adversarial to the model.
         """
-        #print("Performing multi noise no gradient attack")
         # For mel-spectrograms BMW
-        if inputs.min() < -100 or inputs.max() > 45: raise ValueError('Input values should be in the [-83, 43] range.')
+        if inputs.min() < -83 or inputs.max() > 43: raise ValueError('Input values should be in the [-83, 43] range.')
             
         batch_size = labels.shape[0]
         multiplier = 1 if targeted else -1
@@ -263,7 +255,7 @@ class PGD_L2(Attacker):
             delta = delta + grad*self.max_norm/self.steps*2
 
             delta.data.add_(inputs[::num_noise_vectors])
-            delta.data.clamp_(-100, 45).sub_(inputs[::num_noise_vectors])
+            delta.data.clamp_(-83, 43).sub_(inputs[::num_noise_vectors])
 
             delta.data.renorm_(p=2, dim=0, maxnorm=self.max_norm)
 

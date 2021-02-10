@@ -1,4 +1,5 @@
 '''
+SmoothADV Classifier combining randomised smoothing with adversarial training.
 Adapted from: https://github.com/Hadisalman/smoothing-adversarial
 Adapted from project 2, course: machine learning for graphs and sequential data
 Paper: https://github.com/Hadisalman/smoothing-adversarial
@@ -184,22 +185,7 @@ class SmoothADV(Classifier, ABC):
         noise = torch.randn_like(x, device=self.this_device) * self.sigma
                     
         acc_normal = accuracy(torch.argmax(self(x + noise, original_lengths), dim=1), y)
-        '''
-        with torch.enable_grad():
 
-            x = self.attacker.attack(self, x, y, original_lengths, noise=noise)
-      
-        x = x + noise
-        out = self(x, original_lengths)
-
-        if self.class_weights is not None:
-            loss = F.cross_entropy(out, y, weight=self.class_weights)
-        else:
-            loss = F.cross_entropy(out, y)
-
-        preds = torch.argmax(out, dim=1)
-        acc = accuracy(preds, y)
-        '''
         mini_batches = self.get_minibatches(batch, self.val_mtrain)
         self.noise_list = []
         main_loss = []
@@ -209,23 +195,10 @@ class SmoothADV(Classifier, ABC):
         
         for x, y, original_lengths in mini_batches:
 
-            """
-            Randomised smoothing
-            """
-            '''
-            print("x shape in validation", x.shape)
-            print("batch[0] shape", batch[0].shape)
-            print("batch shape", len(batch))
-            print("mtrain", self.mtrain)
-            print("x repeat", x.repeat((1, self.mtrain, 1, 1)).shape)
-            '''
             x = x.repeat((1, self.val_mtrain, 1, 1)).view(batch[0].shape)
             original_lengths = original_lengths.repeat(self.val_mtrain)
             noise = torch.randn_like(x, device=self.this_device) * self.sigma
 
-            """
-            Adversarial training
-            """
             x = self.attacker.attack(self, x, y, original_lengths, 
                                             noise=noise, 
                                             num_noise_vectors= self.val_mtrain, 
@@ -425,9 +398,7 @@ class SmoothADV(Classifier, ABC):
         num_remaining = num_samples
         with torch.no_grad():
             classes = torch.arange(self.num_classes).cuda()
-         #   classes = torch.arange(self.num_classes)
             class_counts = torch.zeros([self.num_classes], dtype=torch.long).cuda()
- #           class_counts = torch.zeros([self.num_classes], dtype=torch.long)
             for it in range(ceil(num_samples / batch_size)):
                 this_batch_size = min(num_remaining, batch_size)
                 if self.include_transform:
@@ -435,7 +406,6 @@ class SmoothADV(Classifier, ABC):
                 else:
                     batch = inputs.repeat((this_batch_size, 1, 1, 1)) # if inputs are melspectrogram
                 random_noise = torch.randn_like(batch).cuda() * torch.tensor(self.sigma).cuda() # add random noise here
- #               random_noise = torch.randn_like(batch)* torch.tensor(self.sigma) # add random noise here
                 seq_lens = seq_len.repeat(this_batch_size)
                 
                 predictions = self.base_classifier((batch + random_noise), seq_lens)

@@ -1,5 +1,5 @@
 """
-Very Deep CNN (M11, M18).
+Very Deep CNNs (M11, M18).
 """
 import torch
 import torch.nn as nn
