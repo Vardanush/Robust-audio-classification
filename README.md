@@ -39,8 +39,6 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
-
 The aim of this project is to implement audio signal classifiers and improve their performance. This has been done via two approaches:
 
 - Approach 1: Denoising + Classification
