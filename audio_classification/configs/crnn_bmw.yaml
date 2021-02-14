@@ -26,7 +26,7 @@ ATTACK_VAL:
   MTRAIN: 2
   NO_GRAD: True # Choice of whether to use gradients during attack or do the cheap trick
   MULTI_NOISE: True # if true the weights of the network are optimized using all the noise samples
-LOSS: 'cross_entropy'
+LOSS: 'cross_entropy' # label_smoothing_cross_entropy
 SOLVER:
   LOG_PATH: '../logs/bmw/'
   NUM_GPUS: 1
