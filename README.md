@@ -1,8 +1,8 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/github_username/repo_name">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+  <a href="https://gitlab.lrz.de/ml-lab-winter-2020-21/project-1">
+    <img src="images/logo.png" alt="Logo" width="200" height="80">
   </a>
 
   <h3 align="center">Project 1: Denoising & Robust Classification of Sound Signals</h3>
@@ -21,9 +21,6 @@
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -71,13 +68,6 @@ under adversarial attacks: L-inf and L-2 fast gradient attacks on pre-trained mo
 
 We have created common routines to train, test and evaluate all models. Results from our experiements can be found on our [wiki](https://wiki.tum.de/display/mllab/Final+Results).
 
-### Built With
-
-* [pytorch_lightning](https://github.com/PyTorchLightning/pytorch-lightning). A lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.
-* [foolbox](https://foolbox.jonasrauber.de/). Fast adversarial attacks to benchmark the robustness of machine learning models in PyTorch, TensorFlow, and JAX
-
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
@@ -85,21 +75,32 @@ To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
+* [pytorch_lightning](https://github.com/PyTorchLightning/pytorch-lightning). A lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.
   ```sh
-  npm install npm@latest -g
+    pip install pytorch-lightning
   ```
-
+* [foolbox](https://foolbox.jonasrauber.de/). Fast adversarial attacks to benchmark the robustness of machine learning models in PyTorch, TensorFlow, and JAX
+  ```sh
+    python3 -m pip install foolbox
+  ```
+  Note: to make sure that foolbox works for all models, it is better to use the modified foolbox library in the shared project folder.
+  
+* [WavAugment](https://github.com/facebookresearch/WavAugment) Wavaugment provides a wrapper for data augmentation on audio data. The audio data is represented as pytorch tensors.
+  ```sh
+    git clone git@github.com:facebookresearch/WavAugment.git && cd WavAugment && python setup.py develop
+  ```
+  
+  
 ### Installation
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/github_username/repo_name.git
+   git clone https://gitlab.lrz.de/ml-lab-winter-2020-21/project-1.git
    ```
-2. Install NPM packages
+2. Install audi_classificaiton packages
    ```sh
-   npm install
+   cd audio_classification
+   python3 -m pip install -e .
    ```
 
 
