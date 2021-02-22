@@ -55,7 +55,7 @@ backgorund noise clips from the MUSAN dataset (https://www.openslr.org/17/). If 
 with stratified k-fold cross validation splits will be automatically generated  when training on this dataset for the first time.
 
 We implemented several robustness methods:
-- Mixup: from paper https://arxiv.org/pdf/1710.09412.pdf
+- Mixup: from paper https://arxiv.org/abs/1710.09412
 - Label smoothing: from paper https://arxiv.org/abs/1512.00567
 - SmoothADV: from paper https://arxiv.org/abs/1906.04584
 
